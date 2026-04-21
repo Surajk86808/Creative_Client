@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=Nunito:wght@400;600;700&display=swap');
+
+@theme {
+  --font-headline: "Josefin Sans", sans-serif;
+  --font-body: "Nunito", sans-serif;
+
+  --color-primary: #002756;
+  --color-primary-container: #0a3d7a;
+  --color-secondary: #005eb5;
+  --color-coral: #FF6B4A;
+  --color-background: #f7f9ff;
+  --color-surface: #f7f9ff;
+  --color-surface-container: #e8eef7;
+  --color-surface-container-high: #e3e9f2;
+  --color-surface-container-low: #eef4fd;
+  --color-on-surface: #161c22;
+  --color-on-surface-variant: #434750;
+  --color-outline-variant: #c3c6d2;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-surface font-body selection:bg-coral selection:text-white;
+  }
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}

@@ -12,6 +12,7 @@ from email.message import EmailMessage
 from email.utils import parseaddr
 from email.utils import make_msgid
 from pathlib import Path
+from pathlib import Path as _Path
 from typing import Any
 
 import requests
@@ -31,8 +32,10 @@ except ImportError:
     from validation import TemplateValidationError, validate_template_files
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(dotenv_path=REPO_ROOT / ".env")
+
+OUTPUT_DIR = _Path(os.getenv("OUTPUT_DIR", str(REPO_ROOT / "output"))).resolve()
 
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -224,6 +227,37 @@ def load_leads(city_slug: str) -> list[dict[str, Any]]:
     if not isinstance(payload, list):
         raise ValueError("Leads file must contain a JSON array.")
     return [item for item in payload if isinstance(item, dict)]
+
+
+def load_leads_auto(city_slug: str | None = None) -> list[dict[str, Any]]:
+    """
+    Load leads from output Excel files (primary) or JSON (fallback).
+    If city_slug is provided and Excel files exist, filter to that city.
+    """
+    try:
+        from .excel_leads import find_output_excel_files, load_all_excel_leads
+    except ImportError:
+        from excel_leads import find_output_excel_files, load_all_excel_leads
+
+    excel_files = find_output_excel_files(OUTPUT_DIR)
+    if excel_files:
+        logger.info("Loading leads from %d Excel file(s) in output/", len(excel_files))
+        leads = load_all_excel_leads(OUTPUT_DIR)
+        if city_slug:
+            leads = [
+                l for l in leads
+                if l.get("city", "").strip().lower().replace(" ", "-") == city_slug
+                or l.get("location", "").strip().lower().replace(" ", "-") == city_slug
+            ]
+        return leads
+
+    logger.info("No output Excel files found. Falling back to JSON leads.")
+    if city_slug is None:
+        raise SystemExit(
+            "No output Excel files found and no city_slug provided "
+            "for JSON fallback. Run website-builder first."
+        )
+    return load_leads(city_slug)
 
 
 def load_status(city_slug: str) -> dict[str, dict[str, Any]]:
@@ -588,7 +622,7 @@ def update_status(
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
-    parser.add_argument("city_name")
+    parser.add_argument("city_name", nargs="?", default=None)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--dry-run-no-groq",
@@ -604,13 +638,19 @@ def main() -> None:
     if args.dry_run_no_groq and not args.dry_run:
         raise SystemExit("--dry-run-no-groq requires --dry-run.")
 
-    city_name = args.city_name.strip()
-    if not city_name:
-        raise SystemExit("City name cannot be empty.")
-    try:
-        city_slug = _sanitize_city_name(city_name)
-    except ValueError as exc:
-        raise SystemExit(str(exc)) from exc
+    if args.city_name:
+        city_name = args.city_name.strip()
+        if not city_name:
+            raise SystemExit("City name cannot be empty.")
+        try:
+            city_slug = _sanitize_city_name(city_name)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+    else:
+        city_name = None
+        city_slug = None
+
+    effective_slug = city_slug or "output_excel"
     signature = _build_signature()
     needs_generation = not args.dry_run_no_groq
     needs_send = not args.dry_run
@@ -622,7 +662,7 @@ def main() -> None:
     suppression_list = _load_suppression_list(SUPPRESSION_LIST_PATH)
     opt_out_footer = UNSUBSCRIBE_TEXT
 
-    leads = load_leads(city_slug)
+    leads = load_leads_auto(city_slug if city_slug else None)
     emailable_leads = []
     for lead in leads:
         website_status = str(lead.get("website_status") or "").strip().lower()
@@ -633,7 +673,7 @@ def main() -> None:
     if not emailable_leads:
         logger.info(
             "No leads with valid email for city=%s. Skipping template generation and send flow.",
-            city_slug,
+            city_slug or "",
         )
         return
 
@@ -648,13 +688,13 @@ def main() -> None:
             logger.error("Template validation failed: %s", exc)
             raise SystemExit(1) from exc
 
-    status_data = load_status(city_slug)
-    dedup_store = load_dedup_store(city_slug)
+    status_data = load_status(effective_slug)
+    dedup_store = load_dedup_store(effective_slug)
 
     email_status_dir = Path("public") / "email_status"
-    smtp_log_path = email_status_dir / f"{city_slug}_smtp_events.jsonl"
-    audit_log_path = email_status_dir / f"{city_slug}_audit_log.json"
-    rate_state_path = email_status_dir / f"{city_slug}_rate_state.json"
+    smtp_log_path = email_status_dir / f"{effective_slug}_smtp_events.jsonl"
+    audit_log_path = email_status_dir / f"{effective_slug}_audit_log.json"
+    rate_state_path = email_status_dir / f"{effective_slug}_rate_state.json"
     limiter = RateLimiter(MAX_PER_HOUR, MAX_PER_DAY, rate_state_path)
 
     for lead in emailable_leads:
@@ -677,7 +717,7 @@ def main() -> None:
         if domain and domain in BLOCKED_EMAIL_DOMAINS:
             logger.info("Skipping blocked domain lead=%s domain=%s", lead_id, domain)
             continue
-        campaign_id = str(lead.get("campaign_id") or city_slug).strip()
+        campaign_id = str(lead.get("campaign_id") or effective_slug).strip()
         dedup_key = f"{campaign_id}::{normalized_email}"
 
         existing_status = status_data.get(lead_id, {})
@@ -782,11 +822,12 @@ def main() -> None:
             "provider_response": provider_response,
             "status": status_value,
             "timestamp": timestamp,
+            "whatsapp": str(lead.get("whatsapp") or "").strip(),
         }
         append_audit_log(audit_log_path, audit_row)
 
         update_status(status_data, lead_id, subject, status_value, timestamp)
-        save_status(city_slug, status_data)
+        save_status(effective_slug, status_data)
 
         if status_value == "SENT":
             dedup_store[dedup_key] = {
@@ -795,7 +836,7 @@ def main() -> None:
                 "campaign_id": campaign_id,
                 "timestamp": timestamp,
             }
-            save_dedup_store(city_slug, dedup_store)
+            save_dedup_store(effective_slug, dedup_store)
             update_daily_send_summary(DAILY_SUMMARY_PATH, timestamp)
             RateLimiter.apply_random_delay()
 

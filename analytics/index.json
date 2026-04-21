@@ -1,1 +1,93 @@
-{}
+{
+  "india/bengaluru/salon": {
+    "key": "india/bengaluru/salon",
+    "country": "india",
+    "city": "bengaluru",
+    "category": "salon",
+    "scraped_at": "2026-04-21T20:58:01.958Z",
+    "lead_count": 1,
+    "leads_file": "lead_finder/public/data/india/bengaluru/salon/salon.json",
+    "build_started_at": "2026-04-21T21:07:44.494Z",
+    "build_completed_at": "2026-04-21T21:07:45.054Z",
+    "built_count": 1,
+    "status": "done"
+  },
+  "india/bengaluru/cafe-coffee-shop": {
+    "key": "india/bengaluru/cafe-coffee-shop",
+    "country": "india",
+    "city": "bengaluru",
+    "category": "cafe-coffee-shop",
+    "scraped_at": "2026-04-21T20:59:19.056Z",
+    "lead_count": 1,
+    "leads_file": "lead_finder/public/data/india/bengaluru/cafe-coffee-shop/cafe-coffee-shop.json",
+    "build_started_at": "2026-04-21T21:07:44.497Z",
+    "build_completed_at": "2026-04-21T21:07:45.055Z",
+    "built_count": 1,
+    "status": "done"
+  },
+  "india/bengaluru/hotel": {
+    "key": "india/bengaluru/hotel",
+    "country": "india",
+    "city": "bengaluru",
+    "category": "hotel",
+    "scraped_at": "2026-04-21T21:00:23.714Z",
+    "lead_count": 1,
+    "leads_file": "lead_finder/public/data/india/bengaluru/hotel/hotel.json",
+    "build_started_at": "2026-04-21T21:07:44.498Z",
+    "build_completed_at": "2026-04-21T21:07:45.061Z",
+    "built_count": 1,
+    "status": "done"
+  },
+  "india/bengaluru/medical-clinic": {
+    "key": "india/bengaluru/medical-clinic",
+    "country": "india",
+    "city": "bengaluru",
+    "category": "medical-clinic",
+    "scraped_at": "2026-04-21T21:01:34.813Z",
+    "lead_count": 1,
+    "leads_file": "lead_finder/public/data/india/bengaluru/medical-clinic/medical-clinic.json",
+    "build_started_at": "2026-04-21T21:07:44.500Z",
+    "build_completed_at": "2026-04-21T21:07:45.063Z",
+    "built_count": 1,
+    "status": "done"
+  },
+  "india/bengaluru/pizza-restaurant": {
+    "key": "india/bengaluru/pizza-restaurant",
+    "country": "india",
+    "city": "bengaluru",
+    "category": "pizza-restaurant",
+    "scraped_at": "2026-04-21T21:03:10.692Z",
+    "lead_count": 1,
+    "leads_file": "lead_finder/public/data/india/bengaluru/pizza-restaurant/pizza-restaurant.json",
+    "build_started_at": "2026-04-21T21:07:44.502Z",
+    "build_completed_at": "2026-04-21T21:07:45.065Z",
+    "built_count": 1,
+    "status": "done"
+  },
+  "india/bengaluru/restaurant": {
+    "key": "india/bengaluru/restaurant",
+    "country": "india",
+    "city": "bengaluru",
+    "category": "restaurant",
+    "scraped_at": "2026-04-21T21:04:25.773Z",
+    "lead_count": 1,
+    "leads_file": "lead_finder/public/data/india/bengaluru/restaurant/restaurant.json",
+    "build_started_at": "2026-04-21T21:07:44.503Z",
+    "build_completed_at": "2026-04-21T21:07:45.067Z",
+    "built_count": 1,
+    "status": "done"
+  },
+  "india/bengaluru/urgent-care": {
+    "key": "india/bengaluru/urgent-care",
+    "country": "india",
+    "city": "bengaluru",
+    "category": "urgent-care",
+    "scraped_at": "2026-04-21T21:05:37.676Z",
+    "lead_count": 1,
+    "leads_file": "lead_finder/public/data/india/bengaluru/urgent-care/urgent-care.json",
+    "build_started_at": "2026-04-21T21:07:44.505Z",
+    "build_completed_at": "2026-04-21T21:07:45.069Z",
+    "built_count": 1,
+    "status": "done"
+  }
+}
