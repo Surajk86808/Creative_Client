@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Newsreader", serif;
+  --font-sans: "Manrope", sans-serif;
+  
+  --color-primary: #e8c178;
+  --color-on-primary: #412d00;
+  --color-background: #131318;
+  --color-surface: #1b1b20;
+  --color-surface-high: #2a292f;
+  --color-outline: #4e4639;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-slate-200 font-sans antialiased;
+  }
+}
+
+.serif-title {
+  @apply font-serif;
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #c4a05a 0%, #e8c178 100%);
+}
+
+.hero-overlay {
+  background: radial-gradient(circle at top right, rgba(232, 193, 120, 0.1), transparent 60%);
+}

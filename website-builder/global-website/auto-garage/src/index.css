@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Rajdhani", sans-serif;
+  --font-body: "Inter", sans-serif;
+  
+  --color-primary: #f5c518;
+  --color-surface: #121318;
+  --color-surface-container: #1e1f25;
+  --color-on-surface: #e3e1e9;
+  --color-on-surface-variant: #d1c5ac;
+}
+
+@layer utilities {
+  .grid-overlay {
+    background-size: 40px 40px;
+    background-image: 
+      linear-gradient(to right, rgba(245, 197, 24, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(245, 197, 24, 0.05) 1px, transparent 1px);
+  }
+}
+
+body {
+  @apply bg-surface text-on-surface font-body selection:bg-primary selection:text-surface;
+}

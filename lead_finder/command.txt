@@ -1,0 +1,50 @@
+# command for specific category
+# python run.py --city "city_name" --categories-file categories.txt --max 0 --analyze-websites
+
+
+# command for all category
+# python run.py --city "city_name" --categories "category_name" --max 0 --analyze-websites  -> singlecategory
+# python run.py --city "Austin" --categories "car wash,gym,salon" --max 0 --analyze-websites  -> multiple category
+
+# email sender agent
+# dry run (split emailable/no-email, store phone-only in leads_no.json)
+# python email_sender/run.py --city "bengaluru" --dry-run
+
+# actual send (requires EMAIL_SMTP_USER, EMAIL_SMTP_PASS, EMAIL_FROM)
+# python email_sender/run.py --city "bengaluru" --subject "Quick website improvement idea"
+
+# ------------------------------------------------------------
+# EMAIL SENDER (agent.py) - exact commands and use
+# IMPORTANT: run from project root -> D:\client finder\lead_finder
+# ------------------------------------------------------------
+
+# go to project root (required, because agent.py uses relative paths like public/data/...)
+# cd "D:\client finder\lead_finder"
+
+# dry run for city: checks eligible leads and simulates pipeline without sending
+# python .\email_sender\agent.py bengaluru --dry-run
+
+# actual send for city: generates + sends emails for eligible leads only
+# python .\email_sender\agent.py bengaluru
+
+# wrong command example (will fail: file not found, because agent.py is not in root)
+# python agent.py bengaluru --dry-run
+
+# if you are inside email_sender folder, go back to root first
+# cd "D:\client finder\lead_finder"
+
+# current rule in code: if no lead has valid email (primary_email or emails[]), flow exits early
+# output message: "No leads with valid email ... Skipping template generation and send flow."
+
+
+
+
+
+dentist, physiotherapy, salon, spa & massage, gym, restaurant, cafe & coffee shop, bakery, wedding planner, event planner, photography, jewelry store, real estate, accounting, tax consultant, insurance agent, plumbing ,repair ,hospital, hotel ,clinic ,
+
+
+python run.py --city "ara-bihar-india" --categories "school,resturant,coaching,doctor,hospital,hotel,institute" --max 0
+
+
+
+

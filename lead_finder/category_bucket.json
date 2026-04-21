@@ -1,0 +1,52 @@
+{
+  "buckets": [
+    {
+      "bucket_no": 1,
+      "bucket_name": "Health & Wellness Clinics",
+      "core_pain_point": "Patients can't find you on Google, no online appointment booking, losing to bigger clinic chains that have websites.",
+      "categories": ["clinic", "dental", "chiropractor", "physiotherapy", "optometrist", "orthodontist", "urgent care", "veterinary"]
+    },
+    {
+      "bucket_no": 2,
+      "bucket_name": "Beauty, Grooming & Wellness",
+      "core_pain_point": "Fully dependent on Instagram or Justdial, no direct bookings, no way to showcase work professionally.",
+      "categories": ["salon", "spa", "beauty salon", "barber shop", "nail salon", "day spa", "massage therapist", "pet grooming", "tattoo shop", "gym"]
+    },
+    {
+      "bucket_no": 3,
+      "bucket_name": "Home Services & Trades",
+      "core_pain_point": "Over-reliance on Urban Company or Sulekha, no direct leads, customers can't verify credibility before calling.",
+      "categories": ["plumbing", "electrician", "cleaning service", "home cleaning", "roofing", "painter", "window cleaning", "landscaping", "home inspector", "home remodeler", "locksmith", "moving company", "solar installer", "repair shop", "auto repair", "computer repair"]
+    },
+    {
+      "bucket_no": 4,
+      "bucket_name": "Food & Hospitality",
+      "core_pain_point": "Paying heavy commissions to Swiggy/Zomato/OYO, no direct orders, no loyal customer base online.",
+      "categories": ["bakery", "cafe", "coffee shop", "pizza restaurant", "restaurant", "hotel"]
+    },
+    {
+      "bucket_no": 5,
+      "bucket_name": "Professional & Financial Services",
+      "core_pain_point": "No online credibility, clients Google you before calling and find nothing, losing deals to competitors with polished websites.",
+      "categories": ["law firm", "accounting", "tax consultant", "real estate", "property management"]
+    },
+    {
+      "bucket_no": 6,
+      "bucket_name": "Education & Coaching",
+      "core_pain_point": "Relying only on word of mouth and pamphlets, no way to capture leads online, missing families who search on Google.",
+      "categories": ["tutoring", "private tutor", "driving school", "martial arts school", "child care"]
+    },
+    {
+      "bucket_no": 7,
+      "bucket_name": "Retail & Specialty Stores",
+      "core_pain_point": "Invisible on Google, no product showcase, foot traffic declining while online searches increase.",
+      "categories": ["book store", "boutique", "furniture store", "hardware store", "jewelry store", "paint store", "pharmacy", "print shop"]
+    },
+    {
+      "bucket_no": 8,
+      "bucket_name": "Events, Creative & Lifestyle",
+      "core_pain_point": "No portfolio online, clients choose competitors they can see work from, no inquiry system.",
+      "categories": ["photography", "event planner", "wedding planner", "interior designer", "travel agency", "car wash", "laundry service"]
+    }
+  ]
+}

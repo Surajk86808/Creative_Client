@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-label: "Inter", sans-serif;
+
+  --color-on-error-container: #ffdad6;
+  --color-secondary-fixed: #a2eeff;
+  --color-outline: #8d90a0;
+  --color-primary-fixed-dim: #b4c5ff;
+  --color-on-surface: #e0e2ef;
+  --color-on-primary: #002a78;
+  --color-on-secondary-container: #00515d;
+  --color-on-tertiary: #2b3137;
+  --color-primary-container: #2563eb;
+  --color-secondary: #5de6ff;
+  --color-tertiary-container: #686e75;
+  --color-inverse-surface: #e0e2ef;
+  --color-surface-variant: #32343f;
+  --color-inverse-primary: #0053db;
+  --color-on-primary-container: #eeefff;
+  --color-on-surface-variant: #c3c6d7;
+  --color-on-tertiary-fixed: #171c22;
+  --color-surface-container: #1c1f29;
+  --color-inverse-on-surface: #2d303a;
+  --color-surface-container-highest: #32343f;
+  --color-on-tertiary-container: #ecf1f9;
+  --color-secondary-fixed-dim: #2fd9f4;
+  --color-outline-variant: #434655;
+  --color-background: #10131c;
+  --color-surface-dim: #10131c;
+  --color-on-primary-fixed-variant: #003ea8;
+  --color-on-tertiary-fixed-variant: #42474e;
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-surface: #10131c;
+  --color-tertiary-fixed: #dee3eb;
+  --color-surface-container-high: #272a34;
+  --color-tertiary: #c2c7cf;
+  --color-surface-tint: #b4c5ff;
+  --color-primary-fixed: #dbe1ff;
+  --color-surface-container-low: #181b25;
+  --color-tertiary-fixed-dim: #c2c7cf;
+  --color-surface-bright: #363943;
+  --color-on-secondary-fixed: #001f25;
+  --color-on-secondary-fixed-variant: #004e5a;
+  --color-on-secondary: #00363e;
+  --color-surface-container-lowest: #0b0e17;
+  --color-on-background: #e0e2ef;
+  --color-primary: #b4c5ff;
+  --color-on-error: #690005;
+  --color-on-primary-fixed: #00174b;
+  --color-secondary-container: #00cbe6;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-background font-body selection:bg-secondary/30;
+    min-height: max(884px, 100dvh);
+  }
+}
+
+@layer utilities {
+  .circuit-bg {
+    background-image: radial-gradient(circle at 2px 2px, rgba(93, 230, 255, 0.05) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+  .glass-panel {
+    background: rgba(50, 52, 63, 0.6);
+    backdrop-filter: blur(20px);
+  }
+  .text-gradient {
+    background: linear-gradient(to right, #2563eb, #5de6ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}

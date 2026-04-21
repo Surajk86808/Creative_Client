@@ -1,0 +1,187 @@
+{
+  "meta": {
+    "description": "Cold email templates for website development outreach. 3 scenarios per bucket: no_website, old_website, weak_website. Match scenario based on research before sending.",
+    "scenarios": {
+      "no_website": "Business has no website at all — fully on platforms, Instagram, or word of mouth",
+      "old_website": "Business has a website but it looks outdated, slow, not mobile-friendly, or not updated in years",
+      "weak_website": "Business has a website but no SEO, no booking system, no clear CTA, not ranking on Google"
+    },
+    "variables": [
+      "{{business_name}}",
+      "{{category}}",
+      "{{city}}",
+      "{{rating}}",
+      "{{review_count}}",
+      "{{agency_name}}",
+      "{{agency_website}}",
+      "{{agency_phone}}",
+      "{{sender_name}}"
+    ],
+    "usage": "Step 1 — match category to bucket. Step 2 — check if business has no website, old website, or weak website. Step 3 — pick the right scenario template. Step 4 — replace all {{variables}} with real data.",
+    "rules": [
+      "Under 170 words per email",
+      "No emojis",
+      "No phrases like data-driven, optimize operations, digital transformation",
+      "Short paragraphs — 1 to 2 lines max",
+      "Bullet points for benefits",
+      "Confident tone, not desperate",
+      "Website is always the primary solution",
+      "End with 10-minute call CTA",
+      "Clean signature every time"
+    ]
+  },
+  "templates": [
+    {
+      "bucket_no": 1,
+      "bucket_name": "Health & Wellness Clinics",
+      "categories": ["clinic", "dental", "chiropractor", "physiotherapy", "optometrist", "orthodontist", "urgent care", "veterinary"],
+      "scenarios": {
+        "no_website": {
+          "subject": "{{business_name}} — Patients Are Searching Online and Not Finding You",
+          "body": "Hi {{business_name}} Team,\n\nWith a {{rating}} rating and {{review_count}} reviews in {{city}}, your patients clearly trust you. But right now, {{business_name}} has no website — and patients searching for a {{category}} on Google are landing on clinics that do.\n\nThat is business leaving before it ever reaches you.\n\nHere is what a website does for your practice:\n\n- Online appointment booking so patients can schedule without calling\n- Google visibility for '{{category}} in {{city}}' searches happening right now\n- A professional page with services, timings, and reviews that builds trust instantly\n- Removes your dependency on Practo or Justdial where you pay per lead\n\nYour reputation is strong. A website makes sure it reaches every patient searching in {{city}}.\n\nCan we get on a 10-minute call this week to show you exactly what this looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "old_website": {
+          "subject": "{{business_name}} — Your Website Is Losing You Patients Right Now",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} — strong numbers. But your current website is working against you. Outdated design, no mobile optimization, and no booking system signal to patients that the practice may be equally behind.\n\nFirst impressions online are instant. Patients decide in seconds.\n\nHere is what a modern website fixes:\n\n- Mobile-friendly design that works perfectly on every phone\n- Online appointment booking that reduces missed calls and front-desk load\n- Updated service pages and doctor profiles that build immediate confidence\n- Google ranking improvement — old sites rarely appear on page one\n\nYour clinic deserves a website that matches the quality of care you actually deliver.\n\nWould a 10-minute call this week work to walk you through what a rebuild looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "weak_website": {
+          "subject": "{{business_name}} — You Have a Website. It Is Just Not Bringing in Patients.",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating and {{review_count}} reviews in {{city}} — and you already have a website. But if new patients are not finding you through Google, the site is not doing its job.\n\nA website that does not rank is the same as no website for anyone searching today.\n\nHere is what needs to work:\n\n- Local SEO so {{business_name}} appears when patients search '{{category}} in {{city}}'\n- An online booking system that converts visitors into confirmed appointments\n- Clear service pages and a strong call to action on every page\n- Patient reviews integrated into your site to build trust and improve Google ranking\n\nYour existing site is a starting point. We can turn it into a consistent source of new patient enquiries.\n\nCan we take 10 minutes this week to show you specifically what is missing?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        }
+      }
+    },
+    {
+      "bucket_no": 2,
+      "bucket_name": "Beauty, Grooming & Wellness",
+      "categories": ["salon", "spa", "beauty salon", "barber shop", "nail salon", "day spa", "massage therapist", "pet grooming", "tattoo shop", "gym"],
+      "scenarios": {
+        "no_website": {
+          "subject": "{{business_name}} — Instagram Is Not a Website. Here Is Why It Matters.",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} — clearly your clients love the experience. But without a website, every booking depends on a platform you do not own. Instagram changes its algorithm. Justdial charges per lead. You have no control.\n\nA professional website changes that entirely.\n\nHere is what it does:\n\n- Direct bookings with zero commission — every payment comes straight to you\n- A gallery page where your work sells for you before a client calls\n- Google visibility for '{{category}} in {{city}}' searches from ready-to-book clients\n- A brand presence that positions {{business_name}} above competitors still only on Instagram\n\nYour work deserves a platform you own and control.\n\nWould a 10-minute call this week work to show you what this looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "old_website": {
+          "subject": "{{business_name}} — Your Website Does Not Reflect the Quality of Your Work",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and your work clearly speaks for itself. But your current website is outdated — slow to load, not mobile-friendly, and the design does not match the standard of service you actually deliver.\n\nClients judge quality from what they see online first.\n\nHere is what a modern rebuild does:\n\n- A fresh gallery that showcases your best work and immediately builds desire\n- Direct online booking that removes friction and fills your calendar faster\n- A professional brand presence that justifies premium pricing\n- Google visibility that brings in new clients searching {{category}} in {{city}}\n\nYour reputation is already there. Your website just needs to catch up.\n\nCan we take 10 minutes this week to walk you through what a new site looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "weak_website": {
+          "subject": "{{business_name}} — Your Website Exists. But Is It Bringing in Clients?",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and you already have a website. But if new clients are not booking through it, the site is not converting — and that is a fixable problem.\n\nA website that looks good but does not perform is leaving money on the table.\n\nHere is what needs to change:\n\n- A direct booking button on every page so clients can act immediately\n- Local SEO so {{business_name}} ranks when someone searches '{{category}} near me in {{city}}'\n- A gallery of your actual work — not stock images — that converts browsers into bookings\n- Clear service menu with pricing that reduces enquiry calls and speeds up decisions\n\nSmall changes to your existing site can produce a significant increase in direct bookings.\n\nCould we get on a 10-minute call this week to show you exactly what to fix?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        }
+      }
+    },
+    {
+      "bucket_no": 3,
+      "bucket_name": "Home Services & Trades",
+      "categories": ["plumbing", "electrician", "cleaning service", "home cleaning", "roofing", "painter", "window cleaning", "landscaping", "home inspector", "home remodeler", "locksmith", "moving company", "solar installer", "repair shop", "auto repair", "computer repair"],
+      "scenarios": {
+        "no_website": {
+          "subject": "{{business_name}} — Every Lead from Sulekha Is a Lead You Are Paying For",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has built a solid reputation in {{city}} with a {{rating}} rating across {{review_count}} reviews. But without a website, Urban Company or Sulekha is your main source of leads — and you are paying for every single customer who should be coming directly to you.\n\nThat changes the moment you have your own website.\n\nHere is what it delivers:\n\n- A direct enquiry form that captures leads with no platform fees whatsoever\n- Google local visibility for '{{category}} in {{city}}' searches customers run every day\n- Before and after photos and verified reviews that build trust before anyone calls\n- Your own lead pipeline that grows over time and costs nothing per lead\n\nThe businesses winning in {{city}} have a website working while they are out on the job.\n\nCan we take 10 minutes this week to show you what this looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "old_website": {
+          "subject": "{{business_name}} — An Outdated Website Can Cost You More Than No Website",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} — you have clearly earned trust in your area. But your current website is slow, not mobile-friendly, and looks dated. For a {{category}} business, that signals unreliability to a homeowner deciding who to call.\n\nCustomers making quick decisions choose the business that looks most professional online.\n\nHere is what a modern rebuild delivers:\n\n- A fast, mobile-optimised site that loads in under 3 seconds on any phone\n- A clear enquiry or quote request form on the homepage\n- A work portfolio with real photos that builds confidence before you arrive\n- Google ranking improvement — outdated sites consistently lose search position\n\nYour skills are not in question. Your website should not be either.\n\nWould a 10-minute call this week work to walk through what an upgrade looks like?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "weak_website": {
+          "subject": "{{business_name}} — You Have a Website. So Why Are Leads Still Coming from Platforms?",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and you already have a website. But if most of your leads are still coming through Urban Company or Sulekha, your website is not doing the one thing it should — generating direct enquiries.\n\nHere is what is likely missing:\n\n- Local SEO so {{business_name}} ranks on Google when someone searches '{{category}} in {{city}}'\n- A prominent quote or callback request form that captures visitors immediately\n- Service area pages targeting specific neighbourhoods in {{city}}\n- Trust signals — certifications, reviews, and completed project photos — that convert visitors\n\nA few targeted improvements can turn your existing website into your best lead source.\n\nCan we get 10 minutes this week to show you specifically what to fix on {{business_name}}'s site?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        }
+      }
+    },
+    {
+      "bucket_no": 4,
+      "bucket_name": "Food & Hospitality",
+      "categories": ["bakery", "cafe", "coffee shop", "pizza restaurant", "restaurant", "hotel"],
+      "scenarios": {
+        "no_website": {
+          "subject": "{{business_name}} — Every Zomato Order Is Costing You More Than You Think",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} — your customers are loyal and your food clearly delivers. But without a website, every online order runs through Swiggy or Zomato, and a significant commission leaves before the money reaches you.\n\nYour own website fixes that immediately.\n\nHere is what it does:\n\n- Direct online ordering so customers order from you, not from a platform\n- Menu and pricing online that reduces repetitive calls from customers\n- Google visibility for '{{category}} in {{city}}' that brings new customers every day\n- Customer data you own — for promotions, repeat orders, and loyalty offers\n\nEvery order through your website earns you more than the same order through a platform.\n\nWould a quick 10-minute call this week make sense to explore this for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "old_website": {
+          "subject": "{{business_name}} — Your Website Is Not Converting Hungry Customers",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has earned a {{rating}} rating with {{review_count}} reviews in {{city}}. You have a website — but if it is slow, hard to navigate on mobile, or lacks an online ordering option, customers who find it are leaving and going straight to Swiggy instead.\n\nA hungry customer will not wait for a slow website.\n\nHere is what a modern rebuild delivers:\n\n- Fast mobile-friendly design that loads instantly and keeps customers on the page\n- A built-in online ordering system for direct, commission-free orders\n- An updated menu with photos that makes customers want to order before they close the tab\n- Google ranking improvement so {{business_name}} appears when people search in {{city}}\n\nYour food is the product. Your website should be selling it, not pushing customers away.\n\nCan we get 10 minutes this week to walk you through what this looks like?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "weak_website": {
+          "subject": "{{business_name}} — You Have a Website But Zomato Is Still Getting Your Orders",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and you already have a website. But if customers are still placing orders through Swiggy or Zomato instead of directly through your site, you are paying commission on revenue your website should be capturing.\n\nHere is what needs to be fixed:\n\n- A direct online ordering system integrated into your existing website\n- Local SEO so {{business_name}} ranks when people search '{{category}} near me in {{city}}'\n- Clear order-now buttons above the fold on both desktop and mobile\n- A Google Business profile linked to your site to dominate local search results\n\nThe fix is not a new website — it is making your current one work the way it should.\n\nCould we take 10 minutes this week to identify exactly what to improve on {{business_name}}'s site?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        }
+      }
+    },
+    {
+      "bucket_no": 5,
+      "bucket_name": "Professional & Financial Services",
+      "categories": ["law firm", "accounting", "tax consultant", "real estate", "property management"],
+      "scenarios": {
+        "no_website": {
+          "subject": "{{business_name}} — Your Next Client Is Googling You and Finding Nothing",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}}. But without a website, any potential client who searches for you online finds nothing — and in professional services, that absence reads as a red flag, not a mystery.\n\nClients with serious needs choose firms they can verify before they call.\n\nHere is what a professional website does for {{business_name}}:\n\n- Instant credibility with a clean, professional online presence\n- Service pages that rank on Google for {{category}} searches in {{city}}\n- A lead enquiry form that works around the clock, even when you are with clients\n- Credentials, case outcomes, or client testimonials that establish authority before first contact\n\nYour competitors with websites are winning clients who never even considered calling you.\n\nCan we get on a 10-minute call this week to show you what this looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "old_website": {
+          "subject": "{{business_name}} — An Outdated Website Signals an Outdated Practice",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} — your clients trust your expertise. But an outdated website with old design, broken pages, or no mobile formatting quietly signals to new prospects that the firm may not be current with its practices either.\n\nIn professional services, perception is everything before the first meeting.\n\nHere is what a modern rebuild delivers:\n\n- A polished, professional design that reflects the quality of your actual work\n- Updated service pages that clearly explain what you do and who you serve\n- A contact or consultation request form that converts visitors into leads\n- Google ranking improvement — old websites consistently lose position to refreshed competitors\n\nYour expertise is not in question. Your website should not be either.\n\nWould a 10-minute call this week work to walk through what a rebuild looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "weak_website": {
+          "subject": "{{business_name}} — You Have a Website. It Is Just Not Generating Enquiries.",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and a website already live. But if new client enquiries are not coming through it consistently, the site is visible without being effective — and that is a specific problem with a specific fix.\n\nHere is what is likely missing:\n\n- Local SEO so {{business_name}} ranks when someone searches '{{category}} in {{city}}'\n- A clear consultation or callback request form with a strong call to action\n- Service pages written to address what your ideal client is actually searching for\n- Trust signals — qualifications, case outcomes, and testimonials — that close the gap before first contact\n\nYour website should be your best business development tool. Right now it is not working hard enough.\n\nCan we take 10 minutes this week to show you specifically what to improve?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        }
+      }
+    },
+    {
+      "bucket_no": 6,
+      "bucket_name": "Education & Coaching",
+      "categories": ["tutoring", "private tutor", "driving school", "martial arts school", "child care"],
+      "scenarios": {
+        "no_website": {
+          "subject": "{{business_name}} — Parents in {{city}} Search Online Before They Enquire",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} — clearly you are delivering results. But without a website, parents and students searching for {{category}} in {{city}} on Google right now cannot find you. They find the competitors who do have one.\n\nWord of mouth only reaches so far.\n\nHere is what a website does for your business:\n\n- An enquiry page that captures leads 24 hours a day, including weekends and holidays\n- Course details, batch timings, and fees online to reduce repetitive parent calls\n- Google visibility for '{{category}} in {{city}}' searches from parents actively looking\n- A professional presence that builds confidence before a parent even picks up the phone\n\nThe right website turns your reputation into a steady stream of new enrolments.\n\nWould a 10-minute call this week work to show you what this looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "old_website": {
+          "subject": "{{business_name}} — Your Website Is Not Convincing Parents to Enquire",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and an existing website. But if the site looks outdated or is not mobile-friendly, parents who visit it are leaving without enquiring. In education, trust is decided fast — and design is part of that decision.\n\nHere is what a modern rebuild delivers:\n\n- A clean, mobile-optimised site that loads fast and looks credible on any device\n- A clear admissions or enquiry form that captures interested parents immediately\n- Testimonials and student results that provide social proof and build confidence\n- Google ranking improvement — outdated sites lose search position to fresher competitors\n\nYour teaching quality is not in question. Your website should reinforce it, not undermine it.\n\nCan we take 10 minutes this week to walk through what a rebuild looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "weak_website": {
+          "subject": "{{business_name}} — Your Website Is Live But Enrolments Are Not Coming Through It",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and already has a website. But if new enrolments are not coming through it regularly, the site is not converting — and a few targeted changes can fix that.\n\nHere is what is likely missing:\n\n- Local SEO so {{business_name}} ranks when parents search '{{category}} in {{city}}'\n- A prominent enquiry form above the fold on the homepage\n- Batch details, fee structure, and results pages that answer parent questions before they ask\n- Student testimonials or success stories that create trust and trigger action\n\nYour reputation is doing the work offline. Your website should be doing the same online.\n\nCould we get 10 minutes this week to show you specifically what to improve on {{business_name}}'s site?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        }
+      }
+    },
+    {
+      "bucket_no": 7,
+      "bucket_name": "Retail & Specialty Stores",
+      "categories": ["book store", "boutique", "furniture store", "hardware store", "jewelry store", "paint store", "pharmacy", "print shop"],
+      "scenarios": {
+        "no_website": {
+          "subject": "{{business_name}} — Customers Searching {{category}} in {{city}} Cannot Find You",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}}. But without a website, when someone searches for {{category}} in {{city}} on Google today, you do not show up — and they walk into a competitor's store or order from one with a website.\n\nFoot traffic is declining. Online search is where buying decisions start now.\n\nHere is what a website does for your store:\n\n- A product catalogue or showcase page that drives Google discovery and in-store visits\n- Google Business paired with your website that dominates local {{city}} search results\n- A WhatsApp or call CTA that turns online browsers into real buyers quickly\n- A brand identity beyond just a shop name that builds recognition and repeat visits\n\nCustomers who search online are ready to buy. You just need to appear when they look.\n\nCan we take 10 minutes this week to walk through what this looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "old_website": {
+          "subject": "{{business_name}} — Your Website Is Sending Customers to Your Competitors",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and a website already live. But if it is slow, visually dated, and not optimised for mobile, customers who find it are leaving within seconds and choosing a store with a better-looking site.\n\nIn retail, your website is your digital storefront. It needs to look the part.\n\nHere is what a rebuild delivers:\n\n- A fast, modern, mobile-friendly design that keeps customers on the page\n- An updated product catalogue or showcase that makes browsing and buying easy\n- A clear click-to-call or WhatsApp button that converts interest into a visit or order\n- Google ranking improvement — old retail sites consistently lose position over time\n\nYour store quality deserves to be reflected online.\n\nWould a 10-minute call this week work to walk through what a new site looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "weak_website": {
+          "subject": "{{business_name}} — You Have a Website. But Is It Bringing Customers In?",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and a website that is already live. But if it is not ranking on Google and not generating footfall or direct enquiries, the site is not doing its job.\n\nHere is what is likely holding it back:\n\n- No local SEO — {{business_name}} is not appearing when people search '{{category}} in {{city}}'\n- No product showcase or catalogue that gives visitors a reason to visit the store\n- No clear call to action — visitors do not know whether to call, visit, or order\n- Google Business profile not properly linked and optimised alongside the website\n\nYour store is already good. Your website just needs to start working as hard as you do.\n\nCan we take 10 minutes this week to show you specifically what is missing?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        }
+      }
+    },
+    {
+      "bucket_no": 8,
+      "bucket_name": "Events, Creative & Lifestyle",
+      "categories": ["photography", "event planner", "wedding planner", "interior designer", "travel agency", "car wash", "laundry service"],
+      "scenarios": {
+        "no_website": {
+          "subject": "{{business_name}} — Clients Choose Who They Can See. Are You Visible?",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} — your work clearly delivers. But in the {{category}} space, clients browse portfolios before they ever make contact. Without a website, they cannot find yours — and they book someone they can see instead.\n\nA professional website is how you stop losing those clients silently.\n\nHere is what it does for {{business_name}}:\n\n- A portfolio or gallery where your work sells for you before you say a word\n- Package and pricing details that filter serious enquiries and save you time\n- Google visibility for '{{category}} in {{city}}' from clients who are ready to book\n- A premium brand presence that justifies your rates and attracts better projects\n\nThe best clients in {{city}} are searching right now. Make sure they find {{business_name}}.\n\nCould we get on a 10-minute call this week to explore what this looks like?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "old_website": {
+          "subject": "{{business_name}} — Your Portfolio Deserves Better Than an Outdated Website",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and your work is clearly at a high standard. But your current website does not reflect that. Outdated design, poor mobile experience, and slow loading push away clients the moment they land on it.\n\nIn creative fields, your website is your first sample of work.\n\nHere is what a rebuild delivers:\n\n- A visually striking portfolio that showcases your best projects and creates immediate desire\n- A fast, mobile-first design that performs perfectly on every device\n- A clear enquiry or packages page that moves serious clients toward booking\n- Google ranking improvement so {{business_name}} appears for {{category}} searches in {{city}}\n\nYour work has earned a better showcase. A new website delivers exactly that.\n\nCan we take 10 minutes this week to walk through what this looks like for {{business_name}}?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        },
+        "weak_website": {
+          "subject": "{{business_name}} — Your Website Is Up. But Is It Winning You Clients?",
+          "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and already has a website. But if new client enquiries are not coming through it consistently, the site is visible without converting — and that gap is fixable.\n\nHere is what is likely missing:\n\n- Local SEO so {{business_name}} ranks when someone searches '{{category}} in {{city}}'\n- A portfolio or gallery of your real work — not placeholder images — that builds instant desire\n- A packages or pricing page that qualifies serious enquiries automatically\n- A strong call to action on every page so visitors know exactly how to book\n\nYour work is already strong. Your website just needs to communicate that clearly to every visitor.\n\nCould we get 10 minutes this week to show you specifically what to improve on {{business_name}}'s site?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        }
+      }
+    }
+  ]
+}

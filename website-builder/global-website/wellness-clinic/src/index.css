@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Plus+Jakarta+Sans:wght@700;800&family=Source+Sans+3:wght@300;400;600&family=Work+Sans:wght@300;400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Plus Jakarta Sans", "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Work Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #00331a;
+  --color-primary-container: #1a4a2e;
+  --color-secondary: #36684c;
+  --color-secondary-container: #b6ecc9;
+  --color-tertiary: #432300;
+  --color-tertiary-container: #623600;
+  --color-background: #ebffe6;
+  --color-surface: #ebffe6;
+  --color-on-surface: #0f1f10;
+  --color-on-surface-variant: #414942;
+  --color-outline-variant: #c1c9c0;
+  --color-surface-container-low: #e5f9e0;
+  --color-surface-container-lowest: #ffffff;
+}
+
+@layer base {
+  body {
+    @apply font-body bg-background text-on-surface antialiased;
+  }
+}

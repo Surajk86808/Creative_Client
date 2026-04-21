@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;700&family=Barlow+Condensed:wght@700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-headline: "Barlow Condensed", sans-serif;
+  
+  --color-brand-red: #E63946;
+  --color-background: #0e0e13;
+  --color-surface: #19191f;
+  --color-surface-high: #25252d;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-white font-sans selection:bg-brand-red selection:text-white;
+  }
+}
+
+.hero-diagonal {
+  background-image: linear-gradient(45deg, transparent 48%, rgba(230, 57, 70, 0.05) 50%, transparent 52%);
+  background-size: 40px 40px;
+}

@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Karla:wght@300;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Bebas Neue", sans-serif;
+  --font-body: "Karla", sans-serif;
+
+  --color-primary: #D42B2B;
+  --color-secondary: #C8A96A;
+  --color-bone: #E8E4DC;
+  --color-background: #111113;
+  --color-muted: #7A7880;
+  --color-surface: #131315;
+  --color-surface-container-low: #1b1b1d;
+  --color-surface-container-high: #2a2a2c;
+}
+
+@layer utilities {
+  .blade-texture {
+    background-image: repeating-linear-gradient(45deg, rgba(232, 228, 220, 0.03) 0px, rgba(232, 228, 220, 0.03) 1px, transparent 1px, transparent 12px);
+  }
+
+  .grayscale-hover {
+    @apply grayscale hover:grayscale-0 transition-all duration-500;
+  }
+}
+
+body {
+  @apply bg-background text-bone font-body antialiased;
+}

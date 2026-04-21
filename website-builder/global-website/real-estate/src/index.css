@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Mulish:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Libre Baskerville", serif;
+  --font-sans: "Mulish", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #f2c36b;
+  --color-primary-dark: #d4a853;
+  --color-background: #131317;
+  --color-surface: #1f1f23;
+  --color-surface-variant: #2a292e;
+  --color-on-surface: #e4e1e7;
+  --color-on-surface-variant: #d2c5b2;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-surface font-sans antialiased;
+  }
+}
+
+.gold-glow {
+  background: radial-gradient(circle at center, rgba(242, 195, 107, 0.15) 0%, rgba(19, 19, 23, 0) 70%);
+}
+
+.gold-gradient-cta {
+  background: linear-gradient(135deg, #f2c36b 0%, #d4a853 100%);
+}
+
+.grayscale-hover {
+  @apply grayscale transition-all duration-700 hover:grayscale-0;
+}

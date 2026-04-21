@@ -1,0 +1,421 @@
+{
+  "fallback": "general",
+  "templates": {
+    "general": {
+      "name": "General Business",
+      "dir": "general-business",
+      "priority": 0,
+      "keywords": [
+        "business",
+        "company",
+        "service",
+        "services",
+        "consulting",
+        "consultancy",
+        "agency",
+        "studio",
+        "startup",
+        "manufacturer",
+        "trading",
+        "enterprise"
+      ]
+    },
+    "restaurant": {
+      "name": "Restaurant / Cafe",
+      "dir": "restaurant-cafe",
+      "priority": 50,
+      "keywords": [
+        "restaurant",
+        "cafe",
+        "coffee",
+        "pizza",
+        "pizzeria",
+        "burger",
+        "food",
+        "diner",
+        "bistro",
+        "eatery",
+        "kitchen",
+        "grill",
+        "bbq",
+        "bar",
+        "pub",
+        "bakery",
+        "dessert",
+        "ice cream",
+        "sushi",
+        "chinese",
+        "italian",
+        "thai",
+        "mexican",
+        "indian",
+        "continental"
+      ]
+    },
+    "catering-delivery": {
+      "name": "Catering / Delivery",
+      "dir": "catering-delivery",
+      "priority": 45,
+      "keywords": [
+        "delivery",
+        "takeaway",
+        "take away",
+        "catering",
+        "tiffin",
+        "meal delivery",
+        "lunch box",
+        "cloud kitchen",
+        "home chef",
+        "food delivery",
+        "caterer"
+      ]
+    },
+    "spa-salon": {
+      "name": "Spa / Salon",
+      "dir": "atelier-spa",
+      "priority": 60,
+      "keywords": [
+        "salon",
+        "hair",
+        "beauty",
+        "spa",
+        "nail",
+        "waxing",
+        "threading",
+        "grooming",
+        "makeup",
+        "bridal makeup",
+        "skin care",
+        "skincare",
+        "massage",
+        "wellness"
+      ]
+    },
+    "grooming-ink": {
+      "name": "Barber / Tattoo",
+      "dir": "barber-tattoo",
+      "priority": 70,
+      "keywords": [
+        "tattoo",
+        "ink",
+        "piercing",
+        "barber",
+        "mens salon",
+        "men salon",
+        "men grooming"
+      ]
+    },
+    "fitness": {
+      "name": "Gym / Fitness",
+      "dir": "gym-fitness",
+      "priority": 55,
+      "keywords": [
+        "gym",
+        "fitness",
+        "yoga",
+        "crossfit",
+        "pilates",
+        "sports",
+        "zumba",
+        "trainer",
+        "personal training",
+        "strength",
+        "conditioning",
+        "martial arts",
+        "boxing"
+      ]
+    },
+    "education": {
+      "name": "School / Academy",
+      "dir": "school-academy",
+      "priority": 52,
+      "keywords": [
+        "school",
+        "tutor",
+        "academy",
+        "coaching",
+        "training",
+        "classes",
+        "institute",
+        "college",
+        "nursery",
+        "preschool",
+        "tuition",
+        "online classes",
+        "edtech"
+      ]
+    },
+    "coaching": {
+      "name": "Coaching / EdTech",
+      "dir": "coaching-pro",
+      "priority": 51,
+      "keywords": [
+        "coach",
+        "mentor",
+        "mentorship",
+        "career coach",
+        "life coach",
+        "executive coach",
+        "consultant",
+        "course",
+        "bootcamp"
+      ]
+    },
+    "medical-dental": {
+      "name": "Medical / Dental",
+      "dir": "medical-dental",
+      "priority": 65,
+      "keywords": [
+        "doctor",
+        "clinic",
+        "hospital",
+        "dentist",
+        "dental",
+        "physician",
+        "medical",
+        "health",
+        "pharmacy",
+        "optician",
+        "diagnostic",
+        "lab",
+        "pathology",
+        "physiotherapy",
+        "therapy"
+      ]
+    },
+    "wellness-botanical": {
+      "name": "Wellness Clinic",
+      "dir": "wellness-clinic",
+      "priority": 40,
+      "keywords": [
+        "ayurveda",
+        "homeopathy",
+        "naturopathy",
+        "wellness",
+        "herbal",
+        "herbs",
+        "nutrition",
+        "dietician",
+        "dietitian",
+        "supplements"
+      ]
+    },
+    "legal": {
+      "name": "Law Firm",
+      "dir": "law-firm",
+      "priority": 62,
+      "keywords": [
+        "lawyer",
+        "attorney",
+        "legal",
+        "law firm",
+        "solicitor",
+        "advocate",
+        "notary",
+        "documentation",
+        "compliance"
+      ]
+    },
+    "real-estate": {
+      "name": "Real Estate",
+      "dir": "real-estate",
+      "priority": 58,
+      "keywords": [
+        "real estate",
+        "property",
+        "realtor",
+        "housing",
+        "mortgage",
+        "estate agent",
+        "broker",
+        "builder",
+        "developer",
+        "interior"
+      ]
+    },
+    "automotive": {
+      "name": "Auto / Garage",
+      "dir": "auto-garage",
+      "priority": 57,
+      "keywords": [
+        "car",
+        "auto",
+        "automobile",
+        "garage",
+        "mechanic",
+        "tyre",
+        "tire",
+        "workshop",
+        "bike",
+        "towing",
+        "car wash",
+        "detailing",
+        "service center",
+        "spare parts"
+      ]
+    },
+    "home-services": {
+      "name": "Home Services",
+      "dir": "home-services",
+      "priority": 53,
+      "keywords": [
+        "cleaning",
+        "maid",
+        "housekeeping",
+        "laundry",
+        "dry clean",
+        "carpet cleaning",
+        "construction",
+        "contractor",
+        "plumber",
+        "electrician",
+        "carpenter",
+        "painter",
+        "renovation",
+        "pest control",
+        "water purifier",
+        "ac repair"
+      ]
+    },
+    "events": {
+      "name": "Events / Wedding",
+      "dir": "events-planner",
+      "priority": 56,
+      "keywords": [
+        "event",
+        "events",
+        "venue",
+        "wedding",
+        "banquet",
+        "party",
+        "hall",
+        "conference",
+        "convention",
+        "planner",
+        "event planner",
+        "decor",
+        "decoration"
+      ]
+    },
+    "travel-hospitality": {
+      "name": "Travel / Hotel",
+      "dir": "travel-hotel",
+      "priority": 54,
+      "keywords": [
+        "travel",
+        "tour",
+        "tourism",
+        "hotel",
+        "motel",
+        "inn",
+        "hostel",
+        "bed and breakfast",
+        "resort",
+        "guest house",
+        "lodge",
+        "holiday",
+        "vacation",
+        "homestay"
+      ]
+    },
+    "tech-security": {
+      "name": "Tech Agency",
+      "dir": "tech-agency",
+      "priority": 59,
+      "keywords": [
+        "tech",
+        "technology",
+        "software",
+        "it",
+        "computer",
+        "repair",
+        "web design",
+        "website",
+        "app",
+        "digital marketing",
+        "seo",
+        "cyber",
+        "cybersecurity",
+        "security",
+        "network",
+        "cloud"
+      ]
+    },
+    "finance-accounting": {
+      "name": "Finance / Accounting",
+      "dir": "general-business",
+      "priority": 30,
+      "keywords": [
+        "finance",
+        "accounting",
+        "bookkeeping",
+        "tax",
+        "gst",
+        "vat",
+        "insurance",
+        "ca",
+        "chartered accountant",
+        "auditor",
+        "audit",
+        "loan",
+        "wealth",
+        "investment",
+        "mutual fund",
+        "stock broker"
+      ]
+    },
+    "retail-fashion-photo-pet": {
+      "name": "Retail / Fashion / Photo / Pet",
+      "dir": "general-business",
+      "priority": 20,
+      "keywords": [
+        "shop",
+        "store",
+        "boutique",
+        "market",
+        "grocery",
+        "supermarket",
+        "electronics",
+        "mobile shop",
+        "jewelry",
+        "hardware",
+        "furniture",
+        "fashion",
+        "clothing",
+        "tailoring",
+        "apparel",
+        "textile",
+        "designer",
+        "photo",
+        "photographer",
+        "studio",
+        "videography",
+        "pet",
+        "vet",
+        "veterinary",
+        "dog",
+        "kennel",
+        "pet shop"
+      ]
+    },
+    "engineering-industrial": {
+      "name": "Engineering / Industrial",
+      "dir": "general-business",
+      "priority": 25,
+      "keywords": [
+        "engineering",
+        "industrial",
+        "factory",
+        "fabrication",
+        "machine",
+        "machinery",
+        "precision",
+        "manufacturing",
+        "automation",
+        "civil",
+        "architect",
+        "architecture"
+      ]
+    }
+  }
+}

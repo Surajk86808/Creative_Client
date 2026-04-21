@@ -1,0 +1,69 @@
+# HEALTH & MEDICAL (High Call Volume India)
+hospital
+medical clinic
+diagnostic lab
+pathology lab
+dentist
+physiotherapy
+skin clinic
+eye clinic
+IVF clinic
+pharmacy
+
+# HOME & PROPERTY (Very Strong in India)
+real estate
+property management
+builder / developer
+construction company
+architect
+interior designer
+
+# AUTOMOTIVE (Phone + Walk-in Driven)
+car dealer
+used car dealer
+car rental
+auto repair
+bike rental
+towing service
+
+# FOOD & EVENTS (India = Event Heavy Market)
+restaurant
+cafe & coffee shop
+catering service
+banquet hall
+wedding planner
+event planner
+
+# EDUCATION & TRAINING (Huge in India)
+coaching institute
+IELTS institute
+computer training institute
+spoken English classes
+driving school
+tutoring & private tutor
+
+# FINANCE & PROFESSIONAL (Lead Driven)
+CA firm
+accounting
+tax consultant
+financial advisor
+loan consultant
+insurance agent
+law firm
+
+# BEAUTY & PERSONAL SERVICES (WhatsApp Booking Driven)
+salon
+spa & massage
+gym
+tattoo shop
+
+# RETAIL & B2B (Often Weak Websites)
+jewelry store
+hardware store
+furniture store
+paint store
+print shop
+solar installer
+
+# ACCOMMODATION
+hotel

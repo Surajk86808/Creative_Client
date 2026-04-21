@@ -1,0 +1,56 @@
+{
+  "leads": {
+    "39c063aa3de43e8f81272258f3c8c0ddc0ad770ca28a9fbdfd5586d4ba1a04e8": {
+      "category": "salon",
+      "city": "Bangalore",
+      "concrete_problems": [],
+      "created_at": "2026-02-20T16:50:33Z",
+      "google_maps_url": null,
+      "last_action": "REJECTED_AT_QUALIFICATION",
+      "last_action_date": "2026-02-20T16:50:33Z",
+      "lead_id": "39c063aa3de43e8f81272258f3c8c0ddc0ad770ca28a9fbdfd5586d4ba1a04e8",
+      "lead_quality_score": 7,
+      "manual_review_required": false,
+      "name": "Toni&Guy Essensuals Hairdressing - Medahalli/Seegehalli | Unisex Salon",
+      "outreach_suitability": "LOW",
+      "phone": "090356 10852",
+      "place_id": null,
+      "rating": 4.8,
+      "rejection_reasons": [
+        "Modern website already present."
+      ],
+      "review_count": 273,
+      "status": "REJECTED",
+      "website": "https://www.toniandguymedahalliseegehalli.co.in/",
+      "website_issues": [],
+      "website_score": 7,
+      "website_status": "modern"
+    },
+    "97d87fd701e6dc8b94cee12ddc56e236fd4551832258f6310f254aa9fcfea119": {
+      "category": "salon",
+      "city": "Bangalore",
+      "concrete_problems": [],
+      "created_at": "2026-02-20T16:36:25Z",
+      "google_maps_url": null,
+      "last_action": "REJECTED_AT_QUALIFICATION",
+      "last_action_date": "2026-02-20T16:36:25Z",
+      "lead_id": "97d87fd701e6dc8b94cee12ddc56e236fd4551832258f6310f254aa9fcfea119",
+      "lead_quality_score": 7,
+      "manual_review_required": false,
+      "name": "Toni&Guy Essensuals Hairdressing, Whitefield ITPL Main Road",
+      "outreach_suitability": "LOW",
+      "phone": "089519 91519",
+      "place_id": null,
+      "rating": 4.8,
+      "rejection_reasons": [
+        "Modern website already present."
+      ],
+      "review_count": 552,
+      "status": "REJECTED",
+      "website": "https://www.welns.io/product/booking/WFRCHN000024468/Toniguyitplmainroad/",
+      "website_issues": [],
+      "website_score": 7,
+      "website_status": "modern"
+    }
+  }
+}

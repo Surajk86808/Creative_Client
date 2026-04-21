@@ -1,0 +1,116 @@
+# HEALTH & WELLNESS
+dentist
+physiotherapy
+chiropractor
+optometrist
+orthodontist
+urgent care
+medical clinic
+pharmacy
+veterinary
+hospital
+diagnostic lab
+pathology lab
+skin clinic
+eye clinic
+cosmetic clinic
+
+# BEAUTY & PERSONAL CARE
+salon
+spa & massage
+nail salon
+barber shop
+tattoo shop
+pet grooming
+
+# FITNESS
+gym
+
+# HOME SERVICES
+plumbing
+electrician
+roofing
+painting
+home cleaning
+landscaping
+home remodeling
+home inspector
+window cleaning
+locksmith
+moving company
+handyman repair shop
+pest control
+AC repair
+CCTV installation
+water purifier service
+
+# AUTOMOTIVE
+auto repair
+car wash
+car rental
+car dealer
+used car dealer
+bike repair
+towing service
+
+# FOOD & BEVERAGE
+restaurant
+cafe & coffee shop
+bakery
+pizza restaurant
+catering service
+cloud kitchen
+
+# PROFESSIONAL SERVICES
+law firm
+accounting
+tax consultant
+real estate
+property management
+insurance agent
+financial advisor
+loan consultant
+stock broker
+CA firm
+
+# EDUCATION & CARE
+tutoring & private tutor
+driving school
+child care
+martial arts school
+coaching institute
+computer training institute
+IELTS institute
+spoken English classes
+
+# EVENTS & LIFESTYLE
+wedding planner
+event planner
+photography
+travel agency
+banquet hall
+party hall
+convention center
+
+# RETAIL & SPECIALTY
+boutique
+jewelry store
+book store
+hardware store
+furniture store
+paint store
+laundry service
+print shop
+
+# TRADES & TECH
+computer repair
+solar installer
+construction company
+builder / developer
+architect
+
+# ACCOMMODATION
+hotel
+
+# DESIGN
+interior designer
