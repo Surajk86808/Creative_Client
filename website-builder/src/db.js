@@ -67,6 +67,10 @@ function getAllProcessed() {
   return db.prepare("SELECT * FROM processed_shops ORDER BY deployed_at DESC").all();
 }
 
+function getProcessed(shopId) {
+  return db.prepare("SELECT * FROM processed_shops WHERE shop_id = ?").get(shopId);
+}
+
 module.exports = {
   initDB,
   isProcessed,
@@ -75,5 +79,6 @@ module.exports = {
   markDryRun,
   markError,
   resetShop,
-  getAllProcessed
+  getAllProcessed,
+  getProcessed
 };

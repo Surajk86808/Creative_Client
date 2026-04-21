@@ -26,3 +26,10 @@ Templates can include placeholders that get filled per business:
 - `node src/index.js status`
 - `node src/index.js report`
 - `node src/index.js reset --id SHOP_001`
+- `node src/index.js pipeline --city "bengaluru" --categories "salon,gym" --max 0 --analyze-websites --dry-run` (runs `lead_finder` then builds from JSON leads)
+
+## Output
+
+- Generated sites go under `../output/` by default (repo root `output/`).
+- After each `run`/`pipeline`, an Excel report is written per lead_finder batch at:
+  - `../output/{country}/{city}/{category}/leads.xlsx`

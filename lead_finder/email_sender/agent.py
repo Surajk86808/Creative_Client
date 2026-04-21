@@ -31,7 +31,8 @@ except ImportError:
     from validation import TemplateValidationError, validate_template_files
 
 
-load_dotenv()
+REPO_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(dotenv_path=REPO_ROOT / ".env")
 
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 const path = require("path");
+const fs = require("fs");
+const { spawn } = require("child_process");
 const { Command } = require("commander");
 const { config } = require("./config");
 const { initDB, isProcessed, markProcessing, markDone, markDryRun, markError, resetShop, getAllProcessed } = require("./db");
@@ -13,7 +15,70 @@ const { sleep, ensureDir, chunkArray, createMutex } = require("./utils");
 const { logErrorToFile } = require("./logger");
 const { startPreviewServer } = require("./preview");
 const { outputDirForLead } = require("./leads");
+const { exportReports } = require("./exporter");
 const tracker = require("../../analytics/tracker");
+
+function slugify(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "unknown";
+}
+
+function readCityCountryCache() {
+  const cachePath = path.resolve(__dirname, "../../lead_finder/public/data/_city_country_cache.json");
+  if (!fs.existsSync(cachePath)) return {};
+  try {
+    const raw = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+    return raw && typeof raw === "object" ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+function resolveCountrySlugForCity(cityInput) {
+  const citySlug = slugify(cityInput);
+  const cache = readCityCountryCache();
+  const cached = cache[citySlug];
+  if (cached) return String(cached);
+
+  const dataRoot = path.resolve(__dirname, "../../lead_finder/public/data");
+  if (!fs.existsSync(dataRoot)) return "";
+  for (const entry of fs.readdirSync(dataRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const maybeCity = path.join(dataRoot, entry.name, citySlug);
+    if (fs.existsSync(maybeCity) && fs.statSync(maybeCity).isDirectory()) {
+      return entry.name;
+    }
+  }
+  return "";
+}
+
+function runLeadFinder(opts) {
+  const leadFinderDir = path.resolve(__dirname, "../../lead_finder");
+  const pythonArgs = [path.join(leadFinderDir, "run.py")];
+  if (opts.city) pythonArgs.push("--city", String(opts.city));
+  if (opts.cities) pythonArgs.push("--cities", String(opts.cities));
+  if (opts.categoriesFile) pythonArgs.push("--categories-file", String(opts.categoriesFile));
+  if (opts.categories) pythonArgs.push("--categories", String(opts.categories));
+  if (opts.max !== undefined && opts.max !== null) pythonArgs.push("--max", String(opts.max));
+  if (opts.analyzeWebsites) pythonArgs.push("--analyze-websites");
+  if (opts.showBrowser) pythonArgs.push("--show-browser");
+
+  return new Promise((resolve, reject) => {
+    const child = spawn("python", pythonArgs, {
+      cwd: leadFinderDir,
+      stdio: "inherit",
+      env: process.env
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`lead_finder failed with exit code ${code}`));
+    });
+  });
+}
 
 async function runCommand(opts) {
   ensureDir(path.dirname(config.DB_FILE));
@@ -168,6 +233,13 @@ async function runCommand(opts) {
   }
 
   if (server) server.close();
+
+  try {
+    const written = await exportReports(businesses);
+    for (const reportPath of written) console.log(`INFO: Report written: ${reportPath}`);
+  } catch (err) {
+    console.log(`WARN: Report export failed: ${err && err.message ? err.message : err}`);
+  }
   for (const g of groups.values()) {
     const builtInGroup = businesses.filter(
       (b) => b._country === g.country && b._city === g.city && b._category === g.category
@@ -239,6 +311,41 @@ async function resetCommand(opts) {
   console.log(`ℹ️  Reset ${shopId}`);
 }
 
+async function pipelineCommand(opts) {
+  process.env.USE_JSON_LEADS = "true";
+
+  const citySlug = slugify(opts.city);
+  if (opts.categories) {
+    const allowed = String(opts.categories)
+      .split(",")
+      .map((c) => slugify(c))
+      .filter(Boolean);
+    if (allowed.length) process.env.ANALYTICS_CATEGORY_FILTER = allowed.join(",");
+  }
+
+  await runLeadFinder({
+    city: opts.city,
+    categories: opts.categories,
+    categoriesFile: opts.categoriesFile,
+    max: opts.max,
+    analyzeWebsites: !!opts.analyzeWebsites,
+    showBrowser: !!opts.showBrowser
+  });
+
+  const countrySlug = resolveCountrySlugForCity(opts.city);
+  if (countrySlug) {
+    process.env.ANALYTICS_KEY_PREFIX = `${countrySlug}/${citySlug}/`;
+  }
+
+  await runCommand({
+    limit: opts.limit,
+    id: opts.id,
+    batch: opts.batch,
+    dryRun: opts.dryRun,
+    preview: opts.preview
+  });
+}
+
 const program = new Command();
 program.name("bizsitegen").description("Automated Business Website Generator").version("1.0.0");
 
@@ -250,6 +357,25 @@ program
   .option("--dry-run", "Fill templates but do not deploy")
   .option("--preview", "Serve OUTPUT_DIR locally on port 3000 while running")
   .action((opts) => runCommand(opts));
+
+program
+  .command("pipeline")
+  .description("Run lead_finder then build websites from JSON leads")
+  .requiredOption("--city <city>", "City to scrape (lead_finder --city)")
+  .option("--categories <csv>", "Comma-separated categories (lead_finder --categories)")
+  .option("--categories-file <path>", "Categories file path (lead_finder --categories-file)")
+  .option("--max <n>", "Max results per category (0 = unlimited)", "0")
+  .option("--analyze-websites", "Enable lead_finder website analysis")
+  .option("--show-browser", "Show browser while scraping")
+  .option("--limit <n>", "Build only N shops")
+  .option("--id <shopId>", "Build only one shop_id")
+  .option("--batch <n>", "Parallel batch size (default 1)", "1")
+  .option("--dry-run", "Fill templates but do not deploy")
+  .option("--preview", "Serve OUTPUT_DIR locally on port 3000 while running")
+  .action((opts) => pipelineCommand(opts).catch((err) => {
+    console.error(err && err.message ? err.message : err);
+    process.exitCode = 1;
+  }));
 
 program.command("status").action(() => statusCommand());
 program.command("report").action(() => reportCommand());

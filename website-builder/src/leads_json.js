@@ -36,6 +36,7 @@ function normalizeJsonLead(raw, meta, filePath) {
   const shop_id = raw.shop_id
     || ("SHOP_" + crypto.createHash("sha1").update(String(seed)).digest("hex").slice(0, 10).toUpperCase());
 
+  const socialLinks = Array.isArray(raw.social_media_links) ? raw.social_media_links : [];
   return {
     shop_id,
     shop_name: raw.name || raw.shop_name || "",
@@ -46,10 +47,11 @@ function normalizeJsonLead(raw, meta, filePath) {
     city: raw.city || meta?.city || "",
     country: meta?.country || "",
     website_url: raw.website || raw.website_url || "",
-    instagram: raw.instagram || firstSocialMatch(raw, ["instagram.com"]),
-    facebook: raw.facebook || firstSocialMatch(raw, ["facebook.com"]),
-    twitter: raw.twitter || firstSocialMatch(raw, ["twitter.com", "x.com"]),
-    linkedin: raw.linkedin || firstSocialMatch(raw, ["linkedin.com"]),
+    social_media_links: socialLinks.map((v) => String(v || "").trim()).filter(Boolean),
+    instagram: raw.instagram || firstSocialMatch({ social_media_links: socialLinks }, ["instagram.com"]),
+    facebook: raw.facebook || firstSocialMatch({ social_media_links: socialLinks }, ["facebook.com"]),
+    twitter: raw.twitter || firstSocialMatch({ social_media_links: socialLinks }, ["twitter.com", "x.com"]),
+    linkedin: raw.linkedin || firstSocialMatch({ social_media_links: socialLinks }, ["linkedin.com"]),
     google_maps_url: raw.google_maps_url || raw.url || "",
     place_id: raw.place_id || "",
     rating: raw.rating || "",
@@ -73,7 +75,22 @@ function readJsonLeads(filePath) {
 
 function readReadyLeads() {
   const { getReadyToBuild } = require("../../analytics/tracker");
-  const ready = getReadyToBuild();
+  let ready = getReadyToBuild();
+
+  const prefix = String(process.env.ANALYTICS_KEY_PREFIX || "").trim();
+  if (prefix) ready = ready.filter((entry) => String(entry.key || "").startsWith(prefix));
+
+  const categoryFilterRaw = String(process.env.ANALYTICS_CATEGORY_FILTER || "").trim();
+  if (categoryFilterRaw) {
+    const allowed = new Set(
+      categoryFilterRaw
+        .split(",")
+        .map((v) => String(v || "").trim())
+        .filter(Boolean)
+    );
+    ready = ready.filter((entry) => allowed.has(String(entry.category || "")));
+  }
+
   const leads = [];
   for (const entry of ready) {
     const absFile = path.resolve(__dirname, "../../", entry.leads_file);
