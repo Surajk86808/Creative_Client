@@ -47,4 +47,3 @@ def retry_operation(
             time.sleep(delay)
     if last_exc is not None:
         raise last_exc
-    raise RuntimeError(f"Retry operation failed without captured exception: {operation_name}")

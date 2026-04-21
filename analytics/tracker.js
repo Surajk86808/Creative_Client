@@ -18,10 +18,22 @@ function makeKey(country, city, category) {
   return `${country}/${city}/${category}`;
 }
 
+function validateEntry(entry) {
+  const required = ["key", "country", "city", "category", "scraped_at", "lead_count", "leads_file"];
+  for (const field of required) {
+    if (entry[field] === undefined || entry[field] === null) {
+      throw new Error(`analytics/tracker: missing required field "${field}" in entry`);
+    }
+  }
+  if (typeof entry.lead_count !== "number") {
+    throw new Error(`analytics/tracker: lead_count must be a number, got ${typeof entry.lead_count}`);
+  }
+}
+
 function markScraped({ country, city, category, leadCount, leadsFile }) {
   const data = load();
   const key = makeKey(country, city, category);
-  data[key] = {
+  const entry = {
     key,
     country,
     city,
@@ -34,6 +46,8 @@ function markScraped({ country, city, category, leadCount, leadsFile }) {
     built_count: data[key]?.built_count || 0,
     status: data[key]?.status === "done" ? "done" : "scraped"
   };
+  validateEntry(entry);
+  data[key] = entry;
   save(data);
 }
 
@@ -99,6 +113,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  validateEntry,
   markScraped,
   markBuilding,
   markBuilt,

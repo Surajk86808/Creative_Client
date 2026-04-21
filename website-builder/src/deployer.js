@@ -34,13 +34,6 @@ async function deployToVercel(outputFolderPath, shopId, templatePath) {
 
   try {
     // Build before deploy (Vite -> dist/).
-    // Install once in the template source folder too (helps ensure lockfile/deps are present).
-    // This is optional and non-fatal; the actual build uses the filled output folder.
-    if (templatePath) {
-      const templateAbs = path.isAbsolute(templatePath) ? templatePath : path.join(config.WEBSITES_DIR, templatePath);
-      if (fs.existsSync(templateAbs)) await execFileAsync(npmCmd, ["install"], { cwd: templateAbs });
-    }
-
     await execFileAsync(npmCmd, ["install"], { cwd: outputFolderPath });
     await execFileAsync(npmCmd, ["run", "build"], { cwd: outputFolderPath });
 

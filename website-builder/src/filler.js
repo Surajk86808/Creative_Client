@@ -263,6 +263,14 @@ async function fillTemplate(templatePath, businessData, opts = {}) {
     if (!PLACEHOLDER_RE.test(text)) continue;
     PLACEHOLDER_RE.lastIndex = 0;
     const out = applyReplacements(text, replacements);
+    const remaining = extractPlaceholders(out);
+    if (remaining.length > 0) {
+      logErrorToFile("Unfilled placeholders remain", {
+        shop_id: businessData.shop_id,
+        file: path.relative(outputFolder, f),
+        placeholders: remaining
+      });
+    }
     fs.writeFileSync(f, out, "utf8");
   }
 

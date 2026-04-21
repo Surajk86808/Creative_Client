@@ -52,6 +52,10 @@ function getMap() {
   return cached;
 }
 
+function resetCache() {
+  cached = undefined;
+}
+
 function matchTemplate(categoryString, opts = {}) {
   const { templates, fallbackDir } = getMap();
   const input = String(categoryString || "").toLowerCase();
@@ -82,4 +86,4 @@ function matchTemplate(categoryString, opts = {}) {
   return { template: best.template, score: best.score };
 }
 
-module.exports = { matchTemplate, getMap };
+module.exports = { matchTemplate, getMap, resetCache };

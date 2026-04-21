@@ -47,9 +47,16 @@ SENDER_PHONE = os.getenv("SENDER_PHONE", "").strip()
 SENDER_NAME = os.getenv("SENDER_NAME", "").strip()
 SIGNATURE = os.getenv("EMAIL_SIGNATURE", "").strip()
 UNSUBSCRIBE_TEXT = os.getenv("EMAIL_UNSUBSCRIBE_TEXT", "To opt out, reply STOP.").strip()
-SUPPRESSION_LIST_PATH = Path(
-    os.getenv("EMAIL_SUPPRESSION_LIST_PATH", "public/email_status/suppression_list.txt")
-).resolve()
+_suppression_raw = os.getenv(
+    "EMAIL_SUPPRESSION_LIST_PATH",
+    "public/email_status/suppression_list.txt",
+)
+_suppression_path = Path(_suppression_raw)
+SUPPRESSION_LIST_PATH = (
+    _suppression_path
+    if _suppression_path.is_absolute()
+    else (REPO_ROOT / _suppression_path)
+)
 BLOCKED_EMAIL_DOMAINS = {
     item.strip().lower()
     for item in os.getenv("EMAIL_BLOCKED_DOMAINS", "").split(",")
@@ -59,7 +66,7 @@ MAX_PER_HOUR = int(os.getenv("MAX_PER_HOUR", "50"))
 MAX_PER_DAY = int(os.getenv("MAX_PER_DAY", "200"))
 MAX_FAILED_ATTEMPTS_PER_LEAD = int(os.getenv("MAX_FAILED_ATTEMPTS_PER_LEAD", "3"))
 FAILED_RETRY_COOLDOWN_HOURS = int(os.getenv("FAILED_RETRY_COOLDOWN_HOURS", "24"))
-_LAST_GROQ_CALL_TS = 0.0
+_groq_state: dict[str, float] = {"last_call_ts": 0.0}
 
 CATEGORY_BUCKET_PATH = Path("category_bucket.json")
 BUCKET_TEMPLATE_PATH = Path("bucket_email_template.json")
@@ -415,13 +422,11 @@ def generate_email_via_groq(
     signature: str,
     opt_out_footer: str,
 ) -> tuple[str, str]:
-    global _LAST_GROQ_CALL_TS
-
     groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not groq_api_key:
         raise RuntimeError("Missing GROQ_API_KEY environment variable.")
 
-    elapsed = time.monotonic() - _LAST_GROQ_CALL_TS
+    elapsed = time.monotonic() - _groq_state["last_call_ts"]
     if elapsed < 3:
         time.sleep(3 - elapsed)
 
@@ -505,7 +510,7 @@ def generate_email_via_groq(
     if resp.status_code != 200:
         raise RuntimeError(f"Groq HTTP error {resp.status_code}: {resp.text}")
     raw = resp.json()
-    _LAST_GROQ_CALL_TS = time.monotonic()
+    _groq_state["last_call_ts"] = time.monotonic()
 
     content = str(raw["choices"][0]["message"]["content"])
     subject, body = _extract_subject_and_body(content)

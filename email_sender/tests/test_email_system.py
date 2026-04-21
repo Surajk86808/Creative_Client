@@ -73,6 +73,59 @@ class EmailSystemTests(unittest.TestCase):
         is_valid, reason = validate_generated_email(subject, body, signature)
         self.assertTrue(is_valid, reason)
 
+    def test_invalid_email_rejected(self):
+        from email_sender.agent import _is_valid_email
+        self.assertFalse(_is_valid_email("notanemail"))
+        self.assertFalse(_is_valid_email("missing@"))
+        self.assertFalse(_is_valid_email("@nodomain.com"))
+        self.assertFalse(_is_valid_email("double..dot@domain.com"))
+        self.assertTrue(_is_valid_email("valid@example.com"))
+        self.assertTrue(_is_valid_email("user+tag@sub.domain.org"))
+
+    def test_guardrail_rejects_missing_signature(self):
+        from email_sender.guardrails import validate_generated_email
+        signature = "Website: https://example.com\nMobile: 9999999999\nTest User"
+        subject = "Hello"
+        body = "This body has no signature block at all."
+        valid, reason = validate_generated_email(subject, body, signature)
+        self.assertFalse(valid)
+        self.assertIn("Signature", reason)
+
+    def test_guardrail_rejects_banned_phrase(self):
+        from email_sender.guardrails import validate_generated_email
+        signature = "Website: https://example.com\nMobile: 9999999999\nTest User"
+        subject = "Boost your digital transformation today"
+        body = f"We can help with digital transformation for your business.\n\n{signature}"
+        valid, reason = validate_generated_email(subject, body, signature)
+        self.assertFalse(valid)
+
+    def test_guardrail_rejects_unreplaced_variables(self):
+        from email_sender.guardrails import validate_generated_email
+        signature = "Website: https://example.com\nMobile: 9999999999\nTest User"
+        subject = "Hello {{SHOP_NAME}}"
+        body = f"Dear customer.\n\n{signature}"
+        valid, reason = validate_generated_email(subject, body, signature)
+        self.assertFalse(valid)
+
+    def test_rate_limiter_hourly_cap(self):
+        import tempfile, json
+        from pathlib import Path
+        from email_sender.rate_limiter import RateLimiter
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            state_path = Path(f.name)
+        try:
+            limiter = RateLimiter(max_per_hour=2, max_per_day=100,
+                                  state_file=state_path)
+            can, _ = limiter.can_send(); self.assertTrue(can)
+            limiter.record_send()
+            can, _ = limiter.can_send(); self.assertTrue(can)
+            limiter.record_send()
+            can, reason = limiter.can_send()
+            self.assertFalse(can)
+            self.assertIn("Hourly", reason)
+        finally:
+            state_path.unlink(missing_ok=True)
+
 
 if __name__ == "__main__":
     unittest.main()

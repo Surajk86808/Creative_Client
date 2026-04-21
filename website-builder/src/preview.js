@@ -45,7 +45,7 @@ function startPreviewServer(rootDir, port = 3000) {
 
   return new Promise((resolve, reject) => {
     server.on("error", reject);
-    server.listen(port, () => resolve(server));
+    server.listen(port, "127.0.0.1", () => resolve(server));
   });
 }
 

@@ -13,17 +13,9 @@ def append_jsonl(path: Path, row: dict[str, Any]) -> None:
 
 
 def append_audit_log(path: Path, row: dict[str, Any]) -> None:
-    payload: list[dict[str, Any]] = []
-    if path.exists():
-        try:
-            loaded = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(loaded, list):
-                payload = [item for item in loaded if isinstance(item, dict)]
-        except Exception:
-            payload = []
-    payload.append(row)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
 def filter_audit_logs(
@@ -34,14 +26,33 @@ def filter_audit_logs(
 ) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    try:
-        loaded = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return []
-    if not isinstance(loaded, list):
+
+    content = path.read_text(encoding="utf-8")
+    if not content.strip():
         return []
 
-    rows = [item for item in loaded if isinstance(item, dict)]
+    rows: list[dict[str, Any]] = []
+    first_non_ws = next((ch for ch in content if not ch.isspace()), "")
+    if first_non_ws == "[":
+        try:
+            loaded = json.loads(content)
+        except Exception:
+            return []
+        if not isinstance(loaded, list):
+            return []
+        rows = [item for item in loaded if isinstance(item, dict)]
+    else:
+        for line in content.splitlines():
+            raw = line.strip()
+            if not raw:
+                continue
+            try:
+                parsed = json.loads(raw)
+            except Exception:
+                continue
+            if isinstance(parsed, dict):
+                rows.append(parsed)
+
     if date_iso:
         rows = [
             row for row in rows
