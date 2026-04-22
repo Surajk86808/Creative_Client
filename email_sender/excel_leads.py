@@ -31,7 +31,8 @@ def read_excel_leads(file_path: Path) -> list[dict[str, Any]]:
     """
     Read a leads.xlsx file and return a list of lead dicts
     compatible with the existing agent.py lead format.
-    Only returns rows where build_status == "done" and email is set.
+    Only returns rows where build_status == "deployed", review_status == "approved",
+    and email is set.
     """
     wb = openpyxl.load_workbook(file_path, read_only=True)
     ws = wb.active
@@ -40,7 +41,10 @@ def read_excel_leads(file_path: Path) -> list[dict[str, Any]]:
 
     for row_idx in range(2, ws.max_row + 1):
         build_status = _cell(ws, row_idx, col_map, "build_status")
-        if build_status.lower() != "done":
+        if build_status.lower() != "deployed":
+            continue
+        review_status = _cell(ws, row_idx, col_map, "review_status")
+        if review_status.lower() != "approved":
             continue
         email = _cell(ws, row_idx, col_map, "email")
         if not email:
@@ -59,6 +63,7 @@ def read_excel_leads(file_path: Path) -> list[dict[str, Any]]:
             "website_status": "none",
             "generated_website": _cell(ws, row_idx, col_map, "generated_website"),
             "whatsapp": _cell(ws, row_idx, col_map, "whatsapp"),
+            "review_status": review_status,
             "rating": _cell(ws, row_idx, col_map, "rating"),
             "review_count": None,
             "_source_file": str(file_path),

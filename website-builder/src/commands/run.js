@@ -1,6 +1,6 @@
 const path = require("path");
 const { config } = require("../config");
-const { initDB, isProcessed, markProcessing, markDone, markDryRun, markError } = require("../db");
+const { initDB, isProcessed, markProcessing, markBuilt, markDeployed, markError } = require("../db");
 const { readAllLeads, updateRow } = require("../excel");
 const { readReadyLeads } = require("../leads_json");
 const { matchTemplate } = require("../matcher");
@@ -29,7 +29,7 @@ async function runCommand(opts) {
   const preview = !!opts.preview;
   if (preview && !dryRun) {
     dryRun = true;
-    console.log("â„¹ï¸  --preview implies --dry-run (skipping deploy)");
+    console.log("[info] --preview implies --dry-run (skipping deploy)");
   }
 
   let businesses;
@@ -59,8 +59,7 @@ async function runCommand(opts) {
   for (const g of groups.values()) {
     tracker.markBuilding({ country: g.country, city: g.city, category: g.category });
   }
-
-  console.log(`â„¹ï¸  Reading ${businesses.length} pending businesses from leads/`);
+  console.log(`[info] Reading ${businesses.length} pending businesses from leads/`);
   if (businesses.length === 0) return;
 
   const excelLock = createMutex();
@@ -70,7 +69,7 @@ async function runCommand(opts) {
   let server = null;
   if (preview) {
     server = await startPreviewServer(config.OUTPUT_DIR, 3000);
-    console.log("â„¹ï¸  Preview server: http://127.0.0.1:3000/ (local only)");
+    console.log("[info] Preview server: http://127.0.0.1:3000/ (local only)");
   }
 
   const processOne = async (business, idx, total) => {
@@ -83,11 +82,10 @@ async function runCommand(opts) {
     };
     try {
       if (isProcessed(shopId)) {
-        console.log(`â†·  [${idx}/${total}] ${shopName} â€” already deployed, skipping`);
+        console.log(`[skip] [${idx}/${total}] ${shopName} - already deployed, skipping`);
         return { shopId, status: "skipped" };
       }
-
-      console.log(`âš¡ï¸ [${idx}/${total}] Processing: ${shopName} (category: ${business.category || "n/a"})`);
+      console.log(`[build] [${idx}/${total}] Processing: ${shopName} (category: ${business.category || "n/a"})`);
       markProcessing(shopId, shopName);
       await updateExcelRow("", "processing");
 
@@ -99,8 +97,7 @@ async function runCommand(opts) {
           template_used: template
         });
       }
-
-      console.log("â„¹ï¸  Filling template via Groq...");
+      console.log("[info] Filling template via Groq...");
       const nestedOutputDir = business._country
         ? path.join(config.OUTPUT_DIR, business._country, business._city, business._category, shopId)
         : outputDirForLead(shopId, business.sourceRel || `${shopId}.xlsx`);
@@ -109,7 +106,7 @@ async function runCommand(opts) {
       try {
         const pushRes = await maybePushAndCleanup(config.OUTPUT_DIR, outputPath, business);
         if (pushRes?.pushed) {
-          console.log(`â†‘  Pushed generated code to GitHub (${pushRes.deletedLocal ? "deleted local copy" : "kept local copy"})`);
+          console.log(`[push] Pushed generated code to GitHub (${pushRes.deletedLocal ? "deleted local copy" : "kept local copy"})`);
         }
       } catch (e) {
         console.log(`WARN: Output Git push failed (continuing): ${e && e.message ? e.message : e}`);
@@ -117,36 +114,37 @@ async function runCommand(opts) {
 
       let url = null;
       if (dryRun) {
-        console.log(`â„¹ï¸  Dry run: skipping deploy for ${shopId}`);
+        console.log(`[info] Dry run: skipping deploy for ${shopId}`);
       } else {
         await deployLock.run(async () => {
           const now = Date.now();
           const wait = Math.max(0, 2000 - (now - lastDeployAt));
           if (wait) await sleep(wait);
-          console.log("â„¹ï¸  Deploying to Vercel...");
+          console.log("[info] Deploying to Vercel...");
           url = await deployToVercel(outputPath, shopId, template);
           lastDeployAt = Date.now();
         });
       }
 
       if (url) {
-        markDone(shopId, template, url);
-        await updateExcelRow(url, "done");
-        console.log(`âœ“  ${shopName} â†’ ${url}`);
-        return { shopId, status: "done", url };
+        markBuilt(shopId, template);
+        markDeployed(shopId, template, url);
+        await updateExcelRow(url, "deployed");
+        console.log(`[ok] ${shopName} -> ${url}`);
+        return { shopId, status: "deployed", url, groupKey: business._country ? `${business._country}/${business._city}/${business._category}` : null };
       }
 
       if (dryRun) {
-        markDryRun(shopId, template);
-        await updateExcelRow("", "pending");
-        console.log(`âœ“  ${shopName} â†’ (generated locally at ${outputPath})`);
-        return { shopId, status: "dry-run", url: null };
+        markBuilt(shopId, template);
+        await updateExcelRow("", "built");
+        console.log(`[ok] ${shopName} -> (generated locally at ${outputPath})`);
+        return { shopId, status: "built", url: null, groupKey: business._country ? `${business._country}/${business._city}/${business._category}` : null };
       }
 
       markError(shopId, "Deploy failed");
       await updateExcelRow("", "error");
-      console.log(`âœ—  ${shopName} â€” deploy failed`);
-      return { shopId, status: "error" };
+      console.log(`[error] ${shopName} - deploy failed`);
+      return { shopId, status: "error", groupKey: business._country ? `${business._country}/${business._city}/${business._category}` : null };
     } catch (err) {
       markError(shopId, String(err && err.message ? err.message : err));
       try {
@@ -158,13 +156,23 @@ async function runCommand(opts) {
         shop_id: shopId,
         error: String(err && err.message ? err.message : err)
       });
-      console.log(`âœ—  ${shopName} â€” error: ${err && err.message ? err.message : err}`);
-      return { shopId, status: "error" };
+      console.log(`[error] ${shopName} - error: ${err && err.message ? err.message : err}`);
+      const groupKey = business._country ? `${business._country}/${business._city}/${business._category}` : null;
+      if (groupKey) {
+        tracker.markError({
+          country: business._country,
+          city: business._city,
+          category: business._category,
+          message: String(err && err.message ? err.message : err)
+        });
+      }
+      return { shopId, status: "error", groupKey };
     }
   };
 
   const chunks = chunkArray(businesses, batch);
   let processed = 0;
+  const groupResults = new Map();
   for (const group of chunks) {
     const total = businesses.length;
     const settled = await Promise.allSettled(group.map((b, i) => processOne(b, processed + i + 1, total)));
@@ -172,11 +180,19 @@ async function runCommand(opts) {
     for (const s of settled) {
       if (s.status === "rejected") {
         logErrorToFile("Unhandled promise rejection in batch", { error: String(s.reason) });
+      } else {
+        const result = s.value;
+        if (!result || !result.groupKey) continue;
+        if (!groupResults.has(result.groupKey)) {
+          groupResults.set(result.groupKey, { built: 0, deployed: 0, error: 0 });
+        }
+        const summary = groupResults.get(result.groupKey);
+        if (result.status === "built" || result.status === "deployed") summary.built += 1;
+        if (result.status === "deployed") summary.deployed += 1;
+        if (result.status === "error") summary.error += 1;
       }
     }
   }
-
-  if (server) server.close();
 
   try {
     const written = await exportReports(businesses);
@@ -185,12 +201,28 @@ async function runCommand(opts) {
     console.log(`WARN: Report export failed: ${err && err.message ? err.message : err}`);
   }
   for (const g of groups.values()) {
-    const builtInGroup = businesses.filter(
-      (b) => b._country === g.country && b._city === g.city && b._category === g.category
-    ).length;
-    tracker.markBuilt({ country: g.country, city: g.city, category: g.category, builtCount: builtInGroup });
+    const key = `${g.country}/${g.city}/${g.category}`;
+    const summary = groupResults.get(key) || { built: 0, deployed: 0, error: 0 };
+    tracker.markBuilt({
+      country: g.country,
+      city: g.city,
+      category: g.category,
+      builtCount: summary.built,
+      errorCount: summary.error
+    });
+    tracker.markDeployed({
+      country: g.country,
+      city: g.city,
+      category: g.category,
+      deployedCount: summary.deployed,
+      errorCount: summary.error
+    });
   }
-  console.log("â„¹ï¸  Done");
+  if (server) {
+    console.log("[info] Review dashboard still running at http://127.0.0.1:3000/ . Press Ctrl+C when you are finished reviewing.");
+    return;
+  }
+  console.log("[info] Done");
 }
 
 module.exports = { runCommand };

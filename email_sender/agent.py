@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import argparse
@@ -36,6 +37,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(dotenv_path=REPO_ROOT / ".env")
 
 OUTPUT_DIR = _Path(os.getenv("OUTPUT_DIR", str(REPO_ROOT / "output"))).resolve()
+LEAD_FINDER_PUBLIC_DIR = REPO_ROOT / "lead_finder" / "public"
+EMAIL_PUBLIC_DIR = REPO_ROOT / "public"
 
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -71,8 +74,8 @@ MAX_FAILED_ATTEMPTS_PER_LEAD = int(os.getenv("MAX_FAILED_ATTEMPTS_PER_LEAD", "3"
 FAILED_RETRY_COOLDOWN_HOURS = int(os.getenv("FAILED_RETRY_COOLDOWN_HOURS", "24"))
 _groq_state: dict[str, float] = {"last_call_ts": 0.0}
 
-CATEGORY_BUCKET_PATH = Path("category_bucket.json")
-BUCKET_TEMPLATE_PATH = Path("bucket_email_template.json")
+CATEGORY_BUCKET_PATH = REPO_ROOT / "lead_finder" / "category_bucket.json"
+BUCKET_TEMPLATE_PATH = REPO_ROOT / "lead_finder" / "bucket_email_template.json"
 
 
 logger = logging.getLogger("email_sender")
@@ -90,6 +93,26 @@ def _sanitize_city_name(city_name: str) -> str:
     if not slug:
         raise ValueError("City name must contain alphanumeric characters.")
     return slug
+
+
+def _candidate_public_data_roots() -> list[Path]:
+    roots = [
+        EMAIL_PUBLIC_DIR / "data",
+        LEAD_FINDER_PUBLIC_DIR / "data",
+    ]
+    unique: list[Path] = []
+    seen: set[Path] = set()
+    for root in roots:
+        resolved = root.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique.append(root)
+    return unique
+
+
+def _email_status_root() -> Path:
+    return EMAIL_PUBLIC_DIR / "email_status"
 
 
 def _is_valid_email(email: str) -> bool:
@@ -210,13 +233,13 @@ def load_leads(city_slug: str) -> list[dict[str, Any]]:
         seen.add(resolved)
         candidate_paths.append(path)
 
-    data_root = Path("public") / "data"
-    for slug in slug_variants:
-        _add(data_root / slug / f"{slug}_leads.json")
-        for path in sorted(data_root.glob(f"*/{slug}/{slug}_leads.json")):
-            _add(path)
-        # Backward compatibility with legacy export location.
-        _add(data_root / f"{slug}_leads.json")
+    for data_root in _candidate_public_data_roots():
+        for slug in slug_variants:
+            _add(data_root / slug / f"{slug}_leads.json")
+            for path in sorted(data_root.glob(f"*/{slug}/{slug}_leads.json")):
+                _add(path)
+            # Backward compatibility with legacy export location.
+            _add(data_root / f"{slug}_leads.json")
 
     leads_path = next((path for path in candidate_paths if path.exists()), None)
     if leads_path is None:
@@ -229,7 +252,11 @@ def load_leads(city_slug: str) -> list[dict[str, Any]]:
     return [item for item in payload if isinstance(item, dict)]
 
 
-def load_leads_auto(city_slug: str | None = None) -> list[dict[str, Any]]:
+def load_leads_auto(
+    city_slug: str | None = None,
+    *,
+    allow_json_fallback_when_excel_empty: bool = False,
+) -> list[dict[str, Any]]:
     """
     Load leads from output Excel files (primary) or JSON (fallback).
     If city_slug is provided and Excel files exist, filter to that city.
@@ -249,9 +276,18 @@ def load_leads_auto(city_slug: str | None = None) -> list[dict[str, Any]]:
                 if l.get("city", "").strip().lower().replace(" ", "-") == city_slug
                 or l.get("location", "").strip().lower().replace(" ", "-") == city_slug
             ]
-        return leads
+        if leads:
+            return leads
+        if not allow_json_fallback_when_excel_empty:
+            logger.info(
+                "Excel leads exist but no eligible approved/deployed rows were found for city=%s.",
+                city_slug or "",
+            )
+            return []
+        logger.info("Excel leads found no eligible rows. Falling back to JSON leads.")
 
-    logger.info("No output Excel files found. Falling back to JSON leads.")
+    if not excel_files:
+        logger.info("No output Excel files found. Falling back to JSON leads.")
     if city_slug is None:
         raise SystemExit(
             "No output Excel files found and no city_slug provided "
@@ -261,7 +297,7 @@ def load_leads_auto(city_slug: str | None = None) -> list[dict[str, Any]]:
 
 
 def load_status(city_slug: str) -> dict[str, dict[str, Any]]:
-    status_path = Path("public") / "email_status" / f"{city_slug}.json"
+    status_path = _email_status_root() / f"{city_slug}.json"
     if not status_path.exists():
         return {}
     try:
@@ -274,13 +310,13 @@ def load_status(city_slug: str) -> dict[str, dict[str, Any]]:
 
 
 def save_status(city_slug: str, status_data: dict[str, dict[str, Any]]) -> None:
-    status_path = Path("public") / "email_status" / f"{city_slug}.json"
+    status_path = _email_status_root() / f"{city_slug}.json"
     status_path.parent.mkdir(parents=True, exist_ok=True)
     status_path.write_text(json.dumps(status_data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def load_dedup_store(city_slug: str) -> dict[str, dict[str, Any]]:
-    dedup_path = Path("public") / "email_status" / f"{city_slug}_dedup.json"
+    dedup_path = _email_status_root() / f"{city_slug}_dedup.json"
     if not dedup_path.exists():
         return {}
     try:
@@ -293,7 +329,7 @@ def load_dedup_store(city_slug: str) -> dict[str, dict[str, Any]]:
 
 
 def save_dedup_store(city_slug: str, dedup: dict[str, dict[str, Any]]) -> None:
-    dedup_path = Path("public") / "email_status" / f"{city_slug}_dedup.json"
+    dedup_path = _email_status_root() / f"{city_slug}_dedup.json"
     dedup_path.parent.mkdir(parents=True, exist_ok=True)
     dedup_path.write_text(json.dumps(dedup, indent=2, ensure_ascii=False), encoding="utf-8")
 
@@ -426,6 +462,22 @@ def render_template(template: str, context: dict[str, str]) -> str:
     return rendered
 
 
+def _template_entry_to_text(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, dict):
+        return ""
+
+    subject = str(value.get("subject") or "").strip()
+    body = str(value.get("body") or "").strip()
+    parts: list[str] = []
+    if subject:
+        parts.append(f"Subject guidance: {subject}")
+    if body:
+        parts.append(f"Body guidance:\n{body}")
+    return "\n\n".join(parts).strip()
+
+
 def select_template(
     bucket_key: str,
     scenario: str,
@@ -435,14 +487,15 @@ def select_template(
     if not isinstance(templates, dict):
         return ""
     bucket_templates = templates.get(bucket_key)
-    if isinstance(bucket_templates, str):
-        return bucket_templates
+    direct = _template_entry_to_text(bucket_templates)
+    if direct:
+        return direct
     if isinstance(bucket_templates, dict):
-        scenario_template = bucket_templates.get(scenario)
-        if isinstance(scenario_template, str):
+        scenario_template = _template_entry_to_text(bucket_templates.get(scenario))
+        if scenario_template:
             return scenario_template
-        default_template = bucket_templates.get("default")
-        if isinstance(default_template, str):
+        default_template = _template_entry_to_text(bucket_templates.get("default"))
+        if default_template:
             return default_template
     return ""
 
@@ -662,7 +715,10 @@ def main() -> None:
     suppression_list = _load_suppression_list(SUPPRESSION_LIST_PATH)
     opt_out_footer = UNSUBSCRIBE_TEXT
 
-    leads = load_leads_auto(city_slug if city_slug else None)
+    leads = load_leads_auto(
+        city_slug if city_slug else None,
+        allow_json_fallback_when_excel_empty=bool(args.dry_run_no_groq),
+    )
     emailable_leads = []
     for lead in leads:
         website_status = str(lead.get("website_status") or "").strip().lower()
@@ -691,7 +747,7 @@ def main() -> None:
     status_data = load_status(effective_slug)
     dedup_store = load_dedup_store(effective_slug)
 
-    email_status_dir = Path("public") / "email_status"
+    email_status_dir = _email_status_root()
     smtp_log_path = email_status_dir / f"{effective_slug}_smtp_events.jsonl"
     audit_log_path = email_status_dir / f"{effective_slug}_audit_log.json"
     rate_state_path = email_status_dir / f"{effective_slug}_rate_state.json"

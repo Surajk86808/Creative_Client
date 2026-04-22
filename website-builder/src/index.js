@@ -5,6 +5,7 @@ const { statusCommand } = require("./commands/status");
 const { reportCommand } = require("./commands/report");
 const { resetCommand } = require("./commands/reset");
 const { pipelineCommand } = require("./commands/pipeline");
+const { reviewCommand } = require("./commands/review");
 const tracker = require("../../analytics/tracker");
 
 const program = new Command();
@@ -41,6 +42,14 @@ program
 program.command("status").action(() => statusCommand());
 program.command("report").action(() => reportCommand());
 program
+  .command("review")
+  .description("Start the local approve/reject dashboard for generated sites")
+  .option("--port <n>", "Port for the local review server", "3000")
+  .action((opts) => reviewCommand(opts).catch((err) => {
+    console.error(err && err.message ? err.message : err);
+    process.exitCode = 1;
+  }));
+program
   .command("analytics")
   .description("Show analytics/index.json summary")
   .action(() => {
@@ -49,11 +58,11 @@ program
       console.log("No analytics data yet.");
       return;
     }
-    console.log(`\n${"Key".padEnd(40)} ${"Status".padEnd(12)} ${"Leads".padEnd(8)} ${"Built".padEnd(8)} Scraped At`);
-    console.log("-".repeat(90));
+    console.log(`\n${"Key".padEnd(40)} ${"Status".padEnd(12)} ${"Leads".padEnd(8)} ${"Built".padEnd(8)} ${"Deployed".padEnd(10)} Scraped At`);
+    console.log("-".repeat(108));
     for (const row of rows.sort((a, b) => a.key.localeCompare(b.key))) {
       console.log(
-        `${row.key.padEnd(40)} ${row.status.padEnd(12)} ${String(row.lead_count).padEnd(8)} ${String(row.built_count).padEnd(8)} ${row.scraped_at}`
+        `${row.key.padEnd(40)} ${row.status.padEnd(12)} ${String(row.lead_count).padEnd(8)} ${String(row.built_count || 0).padEnd(8)} ${String(row.deployed_count || 0).padEnd(10)} ${row.scraped_at}`
       );
     }
     console.log("");

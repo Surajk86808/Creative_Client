@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { Mail, MapPin } from "lucide-react";
 
 export default function Contact() {
@@ -21,7 +21,7 @@ export default function Contact() {
               <Mail className="text-primary w-8 h-8" />
               <div>
                 <div className="text-xs uppercase tracking-widest text-on-surface-variant mb-1 font-medium">Email Us</div>
-                <div className="text-lg font-serif font-bold text-primary">[[EMAIL]] â€¢ [[PHONE]]</div>
+                <div className="text-lg font-serif font-bold text-primary">[[EMAIL]] • [[PHONE]]</div>
               </div>
             </div>
             <div className="flex items-center gap-6 p-6 bg-surface-container-low rounded-2xl">

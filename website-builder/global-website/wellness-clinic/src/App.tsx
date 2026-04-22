@@ -492,7 +492,7 @@ export default function App() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-12 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center text-[10px] text-white/40 tracking-widest uppercase font-headline">
-          <div>Â© 2026 [[SHOP_NAME]]. Precision Botanical Medicine.</div>
+          <div>© 2026 [[SHOP_NAME]]. Precision Botanical Medicine.</div>
           <div className="mt-4 md:mt-0">Built with Integrity & Nature.</div>
         </div>
       </footer>

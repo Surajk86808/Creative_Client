@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+﻿import { motion } from "motion/react";
 import { CheckCircle } from "lucide-react";
 
 export default function Hero() {
@@ -25,7 +25,7 @@ export default function Hero() {
           transition={{ delay: 0.4, duration: 0.8 }}
           className="text-5xl md:text-7xl font-serif font-bold text-primary leading-tight tracking-tight mb-6"
         >
-          [[SHOP_NAME]] â€” The <span className="font-serif-italic">art</span> of the <br/>sustainable home.
+          [[SHOP_NAME]] — The <span className="font-serif-italic">art</span> of the <br/>sustainable home.
         </motion.h1>
 
         <motion.p 

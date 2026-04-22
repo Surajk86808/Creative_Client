@@ -3,11 +3,14 @@ const path = require("path");
 const { config } = require("./config");
 const { ensureDir } = require("./utils");
 const { logErrorToFile } = require("./logger");
+const { normalizeReviewStatus } = require("./review");
 
 // Supports both "{{PLACEHOLDER}}" (HTML-friendly) and "[[PLACEHOLDER]]" (JSX-friendly)
 const PLACEHOLDER_RE = /(?:\{\{|\[\[)([A-Z0-9_]+)(?:\}\}|\]\])/g;
 
 const SKIP_DIR_NAMES = new Set(["node_modules", "dist", ".git", "build", "coverage", ".npm-cache"]);
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL || process.env.GROQ_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct";
 
 function normalizeWhitespace(s) {
   return String(s || "").replace(/\s+/g, " ").trim();
@@ -96,17 +99,40 @@ function applyReplacements(text, replacements) {
   });
 }
 
-async function loadGroqClient() {
+function repairMojibakeText(text) {
+  const raw = String(text || "");
+  if (!/[ÃÂâð]/.test(raw)) return raw;
   try {
-    // groq-sdk may be ESM-only in some versions
-    // eslint-disable-next-line global-require
-    const Groq = require("groq-sdk");
-    return new Groq({ apiKey: config.GROQ_API_KEY });
+    const repaired = Buffer.from(raw, "latin1").toString("utf8");
+    const rawMarkers = (raw.match(/[ÃÂâð]/g) || []).length;
+    const repairedMarkers = (repaired.match(/[ÃÂâð]/g) || []).length;
+    return repairedMarkers < rawMarkers ? repaired : raw;
   } catch {
-    const mod = await import("groq-sdk");
-    const Groq = mod.default || mod;
-    return new Groq({ apiKey: config.GROQ_API_KEY });
+    return raw;
   }
+}
+
+async function groqChatCompletion(messages, temperature) {
+  const response = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: GROQ_TEXT_MODEL,
+      temperature,
+      messages
+    })
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Groq HTTP error ${response.status}: ${errorBody}`);
+  }
+
+  const payload = await response.json();
+  return payload?.choices?.[0]?.message?.content || "";
 }
 
 function buildBaseReplacements(businessData) {
@@ -126,9 +152,26 @@ function enforceGeneratedLimits(values) {
   for (const [key, val] of Object.entries(out)) {
     if (val == null) continue;
     if (key === "TAGLINE") out[key] = clampText(val, { maxWords: 10, maxChars: 80 });
+    else if (key === "HERO_KICKER") out[key] = clampText(val, { maxWords: 8, maxChars: 56 });
+    else if (key === "HERO_HEADLINE" || key === "ABOUT_HEADLINE") out[key] = clampText(val, { maxWords: 12, maxChars: 96 });
     else if (key === "ABOUT_TEXT") out[key] = clampText(val, { maxWords: 50, maxChars: 320 });
+    else if (key === "FOOTER_DESCRIPTION") out[key] = clampText(val, { maxWords: 28, maxChars: 180 });
     else if (key.startsWith("SERVICE_")) out[key] = clampText(val, { maxWords: 8, maxChars: 56 });
+    else if (key.startsWith("VALUE_PROP_")) out[key] = clampText(val, { maxWords: 8, maxChars: 56 });
+    else if (/^STAT_\d+_VALUE$/.test(key)) out[key] = clampText(val, { maxWords: 4, maxChars: 24 });
+    else if (/^STAT_\d+_LABEL$/.test(key)) out[key] = clampText(val, { maxWords: 6, maxChars: 48 });
+    else if (/^SERVICE_\d+_(TEXT|DESC)$/.test(key)) out[key] = clampText(val, { maxWords: 18, maxChars: 120 });
+    else if (/^SERVICE_\d+_BADGE$/.test(key)) out[key] = clampText(val, { maxWords: 3, maxChars: 24 });
+    else if (/^OFFER_\d+_TITLE$/.test(key)) out[key] = clampText(val, { maxWords: 8, maxChars: 56 });
+    else if (/^OFFER_\d+_(TAG|SUBTITLE)$/.test(key)) out[key] = clampText(val, { maxWords: 6, maxChars: 48 });
+    else if (/^OFFER_\d+_PRICE$/.test(key)) out[key] = clampText(val, { maxWords: 4, maxChars: 24 });
+    else if (/^OFFER_\d+_ALT$/.test(key)) out[key] = clampText(val, { maxWords: 12, maxChars: 80 });
+    else if (/^TESTIMONIAL_\d+_NAME$/.test(key)) out[key] = clampText(val, { maxWords: 4, maxChars: 36 });
+    else if (/^TESTIMONIAL_\d+_ROLE$/.test(key)) out[key] = clampText(val, { maxWords: 6, maxChars: 48 });
+    else if (/^TESTIMONIAL_\d+_QUOTE$/.test(key)) out[key] = clampText(val, { maxWords: 28, maxChars: 220 });
+    else if (/^TESTIMONIAL_\d+_INITIALS$/.test(key)) out[key] = clampText(val, { maxWords: 2, maxChars: 4 });
     else if (key === "CTA_TEXT") out[key] = clampText(val, { maxWords: 4, maxChars: 24 });
+    else if (key === "CTA_PRIMARY" || key === "CTA_SECONDARY") out[key] = clampText(val, { maxWords: 4, maxChars: 24 });
     else if (key === "META_TITLE") out[key] = clampText(val, { maxWords: 12, maxChars: 60 });
     else if (key === "META_DESCRIPTION") out[key] = clampText(val, { maxWords: 28, maxChars: 160 });
     else if (key.endsWith("_TEXT")) out[key] = clampText(val, { maxWords: 40, maxChars: 260 });
@@ -410,6 +453,132 @@ function inferServices(categoryRaw) {
   return ["Consultation", "Service & support", "Custom solutions"];
 }
 
+function initialsForName(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean).slice(0, 2);
+  if (!parts.length) return "TB";
+  return parts.map((part) => part[0].toUpperCase()).join("");
+}
+
+function inferContentProfile(categoryRaw, phone) {
+  const category = String(categoryRaw || "").toLowerCase();
+  const has = (s) => category.includes(s);
+
+  if (has("pizza") || has("restaurant") || has("cafe") || has("coffee") || has("bakery") || has("food")) {
+    return {
+      heroKicker: "Fresh flavors, warm service",
+      heroHeadline: "Made for repeat visits and easy favorites",
+      aboutHeadline: "Good hospitality starts with a memorable experience",
+      footerDescription: "Welcoming guests with reliable service, standout flavors, and a smooth ordering experience.",
+      ctaPrimary: "Order Now",
+      ctaSecondary: "View Menu",
+      valueProps: [
+        "Freshly prepared selections every day",
+        "Comfortable dine-in, takeaway, and pickup",
+        "Friendly service that keeps people returning",
+        "Easy ordering for busy schedules"
+      ],
+      stats: [
+        { value: "4.8/5", label: "Guest rating" },
+        { value: "Fast", label: "Pickup and delivery" },
+        { value: "Fresh", label: "Prepared daily" },
+        { value: "Local", label: "Neighborhood favorite" }
+      ],
+      serviceTexts: [
+        "A popular option prepared with care, consistency, and strong local appeal.",
+        "Built for convenience, value, and a smooth customer experience.",
+        "A signature favorite that helps guests come back with confidence."
+      ],
+      serviceBadges: ["Popular", "Signature", "Favorite"],
+      offers: [
+        { title: "Signature picks", subtitle: "Most-loved choices", price: "Popular", alt: "Featured menu selection" },
+        { title: "Seasonal specials", subtitle: "Freshly prepared", price: "Limited", alt: "Seasonal food and drink offering" },
+        { title: "Group orders", subtitle: "Easy to share", price: "Best value", alt: "Shared table spread" }
+      ],
+      testimonials: [
+        { name: "Aarav Mehta", role: "Local customer", quote: "Easy ordering, warm service, and a quality experience every time." },
+        { name: "Nisha Rao", role: "Weekend regular", quote: "Consistent quality, great atmosphere, and a team that makes every visit easy." },
+        { name: "Rohan Das", role: "Neighborhood guest", quote: "A dependable local favorite with standout service and plenty of return value." }
+      ]
+    };
+  }
+
+  if (has("travel") || has("hotel") || has("resort") || has("hospitality") || has("stay")) {
+    return {
+      heroKicker: "Stay well. Travel easy.",
+      heroHeadline: "Comfortable stays and seamless planning, all in one place",
+      aboutHeadline: "Designed for smooth arrivals, confident bookings, and memorable stays",
+      footerDescription: "Helping guests book with confidence through flexible options, responsive support, and reliable hospitality.",
+      ctaPrimary: "Book Now",
+      ctaSecondary: "View Offers",
+      valueProps: [
+        "Flexible stays for business or leisure",
+        "Responsive support before and during every booking",
+        "Clear amenities, packages, and planning details",
+        "Comfort built around convenience and trust"
+      ],
+      stats: [
+        { value: "24/7", label: "Guest support" },
+        { value: "Top rated", label: "Comfort and service" },
+        { value: "Flexible", label: "Booking options" },
+        { value: "Local", label: "Convenient access" }
+      ],
+      serviceTexts: [
+        "A reliable booking experience built around comfort, convenience, and clear details.",
+        "Flexible options that make planning easier for families, teams, and solo guests.",
+        "Thoughtful support that keeps every stay or trip smooth from start to finish."
+      ],
+      serviceBadges: ["Popular", "Flexible", "Guest pick"],
+      offers: [
+        { title: "Signature stay", subtitle: "Comfort-first booking", price: "Top pick", alt: "Comfortable stay package" },
+        { title: "Weekend escape", subtitle: "Relaxed planning", price: "Limited", alt: "Relaxing weekend travel experience" },
+        { title: "Business-ready", subtitle: "Smart for teams", price: "Best value", alt: "Business travel or hotel package" }
+      ],
+      testimonials: [
+        { name: "Priya Nair", role: "Frequent traveler", quote: "Clear communication, smooth booking, and a stay that felt thoughtfully managed." },
+        { name: "Rahul Sen", role: "Business guest", quote: "Reliable service from inquiry to checkout, with details handled exactly when needed." },
+        { name: "Meera Joshi", role: "Family planner", quote: "Comfortable, well-organized, and easy to recommend after a genuinely smooth experience." }
+      ]
+    };
+  }
+
+  return {
+    heroKicker: phone ? "Reliable help when it matters" : "Trusted service, clear communication",
+    heroHeadline: "Dependable service built around speed, clarity, and trust",
+    aboutHeadline: "Clear communication, skilled execution, and support you can rely on",
+    footerDescription: "Delivering dependable service with fast response times, clear updates, and a customer-first approach.",
+    ctaPrimary: phone ? "Call Now" : "Get Started",
+    ctaSecondary: "Learn More",
+    valueProps: [
+      "Fast response times and dependable scheduling",
+      "Clear estimates, updates, and next steps",
+      "Experienced professionals focused on quality work",
+      "Support tailored to your timeline and needs"
+    ],
+    stats: [
+      { value: "24/7", label: "Support availability" },
+      { value: "Same day", label: "Fast response" },
+      { value: "Trusted", label: "Customer-first service" },
+      { value: "Local", label: "Responsive coverage" }
+    ],
+    serviceTexts: [
+      "A dependable solution designed to keep service quality high and customer effort low.",
+      "Clear, practical support built around fast turnaround and transparent communication.",
+      "Flexible help that adapts to urgent needs, ongoing maintenance, or planned requests."
+    ],
+    serviceBadges: ["Core", "Priority", "Trusted"],
+    offers: [
+      { title: "Priority response", subtitle: "Fast support", price: "Same day", alt: "Priority service option" },
+      { title: "Planned service", subtitle: "Easy scheduling", price: "Flexible", alt: "Scheduled service visit" },
+      { title: "Ongoing support", subtitle: "Built to last", price: "Popular", alt: "Ongoing support plan" }
+    ],
+    testimonials: [
+      { name: "Karan Patel", role: "Returning customer", quote: "Fast response, clear updates, and a team that made the whole process easier." },
+      { name: "Ananya Shah", role: "Operations manager", quote: "Professional from start to finish, with dependable follow-through and strong communication." },
+      { name: "Vikram Sethi", role: "Local client", quote: "A straightforward, trustworthy experience with quality results and no unnecessary friction." }
+    ]
+  };
+}
+
 function fallbackGeneratedValues(placeholders, businessData) {
   const city = String(businessData.city || "").trim();
   const category = String(businessData.category || "").trim() || "business";
@@ -423,10 +592,14 @@ function fallbackGeneratedValues(placeholders, businessData) {
   const safeCity = cityShort ? ` in ${cityShort}` : "";
 
   const [s1, s2, s3] = inferServices(categoryShort);
+  const profile = inferContentProfile(categoryShort, phone);
 
   const values = {};
   for (const p of placeholders) {
     if (p === "TAGLINE") values[p] = clampWords(`Trusted ${categoryShort}${safeCity}`, 10);
+    else if (p === "HERO_KICKER") values[p] = profile.heroKicker;
+    else if (p === "HERO_HEADLINE") values[p] = profile.heroHeadline;
+    else if (p === "ABOUT_HEADLINE") values[p] = profile.aboutHeadline;
     else if (p === "ABOUT_TEXT") {
       const whereRaw = address || (cityShort ? cityShort : "your area");
       const where = clampText(whereRaw, { maxWords: 12, maxChars: 80 }) || "your area";
@@ -438,31 +611,62 @@ function fallbackGeneratedValues(placeholders, businessData) {
     } else if (p === "SERVICE_1") values[p] = s1;
     else if (p === "SERVICE_2") values[p] = s2;
     else if (p === "SERVICE_3") values[p] = s3;
+    else if (/^SERVICE_(\d+)_(TEXT|DESC)$/.test(p)) {
+      const idx = Number(p.match(/^SERVICE_(\d+)_/)?.[1] || 1) - 1;
+      values[p] = profile.serviceTexts[idx] || profile.serviceTexts[profile.serviceTexts.length - 1];
+    } else if (/^SERVICE_(\d+)_BADGE$/.test(p)) {
+      const idx = Number(p.match(/^SERVICE_(\d+)_/)?.[1] || 1) - 1;
+      values[p] = profile.serviceBadges[idx] || profile.serviceBadges[profile.serviceBadges.length - 1];
+    } else if (/^VALUE_PROP_(\d+)$/.test(p)) {
+      const idx = Number(p.match(/^VALUE_PROP_(\d+)$/)?.[1] || 1) - 1;
+      values[p] = profile.valueProps[idx] || profile.valueProps[profile.valueProps.length - 1];
+    } else if (/^STAT_(\d+)_VALUE$/.test(p)) {
+      const idx = Number(p.match(/^STAT_(\d+)_VALUE$/)?.[1] || 1) - 1;
+      values[p] = profile.stats[idx]?.value || profile.stats[profile.stats.length - 1].value;
+    } else if (/^STAT_(\d+)_LABEL$/.test(p)) {
+      const idx = Number(p.match(/^STAT_(\d+)_LABEL$/)?.[1] || 1) - 1;
+      values[p] = profile.stats[idx]?.label || profile.stats[profile.stats.length - 1].label;
+    } else if (/^OFFER_(\d+)_TITLE$/.test(p)) {
+      const idx = Number(p.match(/^OFFER_(\d+)_TITLE$/)?.[1] || 1) - 1;
+      values[p] = profile.offers[idx]?.title || profile.offers[profile.offers.length - 1].title;
+    } else if (/^OFFER_(\d+)_(TAG|SUBTITLE)$/.test(p)) {
+      const idx = Number(p.match(/^OFFER_(\d+)_/)?.[1] || 1) - 1;
+      values[p] = profile.offers[idx]?.subtitle || profile.offers[profile.offers.length - 1].subtitle;
+    } else if (/^OFFER_(\d+)_PRICE$/.test(p)) {
+      const idx = Number(p.match(/^OFFER_(\d+)_PRICE$/)?.[1] || 1) - 1;
+      values[p] = profile.offers[idx]?.price || profile.offers[profile.offers.length - 1].price;
+    } else if (/^OFFER_(\d+)_ALT$/.test(p)) {
+      const idx = Number(p.match(/^OFFER_(\d+)_ALT$/)?.[1] || 1) - 1;
+      values[p] = profile.offers[idx]?.alt || profile.offers[profile.offers.length - 1].alt;
+    } else if (/^TESTIMONIAL_(\d+)_NAME$/.test(p)) {
+      const idx = Number(p.match(/^TESTIMONIAL_(\d+)_NAME$/)?.[1] || 1) - 1;
+      values[p] = profile.testimonials[idx]?.name || profile.testimonials[profile.testimonials.length - 1].name;
+    } else if (/^TESTIMONIAL_(\d+)_ROLE$/.test(p)) {
+      const idx = Number(p.match(/^TESTIMONIAL_(\d+)_ROLE$/)?.[1] || 1) - 1;
+      values[p] = profile.testimonials[idx]?.role || profile.testimonials[profile.testimonials.length - 1].role;
+    } else if (/^TESTIMONIAL_(\d+)_QUOTE$/.test(p)) {
+      const idx = Number(p.match(/^TESTIMONIAL_(\d+)_QUOTE$/)?.[1] || 1) - 1;
+      values[p] = profile.testimonials[idx]?.quote || profile.testimonials[profile.testimonials.length - 1].quote;
+    } else if (/^TESTIMONIAL_(\d+)_INITIALS$/.test(p)) {
+      const idx = Number(p.match(/^TESTIMONIAL_(\d+)_INITIALS$/)?.[1] || 1) - 1;
+      const nameValue = profile.testimonials[idx]?.name || profile.testimonials[profile.testimonials.length - 1].name;
+      values[p] = initialsForName(nameValue);
+    } else if (p === "FOOTER_DESCRIPTION") values[p] = profile.footerDescription;
     else if (p === "META_TITLE") values[p] = clampChars(`${shopShort}${safeCity} | ${categoryShort}`, 60);
     else if (p === "META_DESCRIPTION") {
       const bits = [`${shopShort}${safeCity}`, categoryShort, phone ? `Call ${phone}` : ""].filter(Boolean);
-      values[p] = clampChars(bits.join(" • "), 160);
+      values[p] = clampChars(bits.join(" | "), 160);
     } else if (p === "CTA_TEXT") values[p] = phone ? "Call Now" : "Get a Quote";
-    else if (p.endsWith("_TEXT") && !values[p]) values[p] = clampText(`${shopShort} — ${categoryShort}${safeCity}.`, { maxWords: 14, maxChars: 120 });
+    else if (p === "CTA_PRIMARY") values[p] = profile.ctaPrimary;
+    else if (p === "CTA_SECONDARY") values[p] = profile.ctaSecondary;
+    else if (p.endsWith("_TEXT") && !values[p]) values[p] = clampText(`${shopShort} - ${categoryShort}${safeCity}.`, { maxWords: 14, maxChars: 120 });
   }
 
-  // Final guardrails: prevent fallback text from blowing up templates/UI when Groq fails.
-  for (const [key, val] of Object.entries(values)) {
-    if (val == null) continue;
-    if (key === "TAGLINE") values[key] = clampText(val, { maxWords: 10, maxChars: 80 });
-    else if (key === "ABOUT_TEXT") values[key] = clampText(val, { maxWords: 50, maxChars: 320 });
-    else if (key.startsWith("SERVICE_")) values[key] = clampText(val, { maxWords: 8, maxChars: 56 });
-    else if (key === "CTA_TEXT") values[key] = clampText(val, { maxWords: 4, maxChars: 24 });
-    else if (key === "META_TITLE") values[key] = clampText(val, { maxWords: 12, maxChars: 60 });
-    else if (key === "META_DESCRIPTION") values[key] = clampText(val, { maxWords: 28, maxChars: 160 });
-    else values[key] = clampText(val, { maxWords: 18, maxChars: 180 });
-  }
-  return values;
+  return enforceGeneratedLimits(values);
 }
 
 async function groqGenerateValues(placeholders, businessData, strict = false) {
   if (!config.GROQ_API_KEY) throw new Error("Missing GROQ_API_KEY");
-  const groq = await loadGroqClient();
 
   const list = placeholders.map((p) => `"${p}"`).join(", ");
   const strictLine = strict
@@ -485,25 +689,29 @@ ${list}
 
 Rules:
 - TAGLINE: catchy, relevant to category, under 10 words
+- HERO_KICKER / HERO_HEADLINE / ABOUT_HEADLINE: short, specific section copy
 - ABOUT_TEXT: 2-3 sentences, warm and professional
 - SERVICE_1/2/3: specific services relevant to this category
+- SERVICE_N_TEXT / SERVICE_N_BADGE: short supporting copy for those services
+- VALUE_PROP_N: concise benefit bullets
+- STAT_N_VALUE / STAT_N_LABEL: believable proof points or trust metrics
+- OFFER_N_TITLE / OFFER_N_SUBTITLE / OFFER_N_PRICE / OFFER_N_ALT: featured packages, rooms, menu items, or offers
+- TESTIMONIAL_N_NAME / ROLE / QUOTE / INITIALS: natural-sounding social proof
+- FOOTER_DESCRIPTION: one sentence summary of the business
+- CTA_TEXT / CTA_PRIMARY / CTA_SECONDARY: action phrases like 'Book Now', 'Visit Us', 'Order Today'
 - META_TITLE: SEO optimised, include shop name and city
 - META_DESCRIPTION: under 160 chars, include keywords
-- CTA_TEXT: action phrase like 'Book Now', 'Visit Us', 'Order Today'
 - Keep SHOP_NAME, ADDRESS, PHONE, EMAIL, CITY, CATEGORY exactly as provided
 ${strictLine}
 `.trim();
 
-  const resp = await groq.chat.completions.create({
-    model: "llama3-70b-8192",
-    messages: [
+  const content = await groqChatCompletion(
+    [
       { role: "system", content: "You output only strict JSON objects." },
       { role: "user", content: prompt }
     ],
-    temperature: 0.6
-  });
-
-  const content = resp.choices?.[0]?.message?.content || "";
+    0.6
+  );
   return JSON.parse(content);
 }
 
@@ -521,7 +729,7 @@ async function fillTemplate(templatePath, businessData, opts = {}) {
 
   const placeholderSet = new Set();
   for (const f of textFiles) {
-    const text = fs.readFileSync(f, "utf8");
+    const text = repairMojibakeText(fs.readFileSync(f, "utf8"));
     for (const p of extractPlaceholders(text)) placeholderSet.add(p);
   }
 
@@ -552,6 +760,9 @@ async function fillTemplate(templatePath, businessData, opts = {}) {
     }
   }
 
+  const fallback = fallbackGeneratedValues(remaining, businessData);
+  generated = enforceGeneratedLimits({ ...fallback, ...generated });
+
   const replacements = { ...generated, ...base };
   const extraFields = {
     INSTAGRAM: businessData.instagram || "",
@@ -568,31 +779,49 @@ async function fillTemplate(templatePath, businessData, opts = {}) {
   Object.assign(replacements, extraFields);
   Object.assign(replacements, pickCategoryImages(businessData.category || ""));
 
+  const unresolved = [];
+
   for (const f of textFiles) {
-    const text = fs.readFileSync(f, "utf8");
-    if (!PLACEHOLDER_RE.test(text)) continue;
+    const rawText = fs.readFileSync(f, "utf8");
+    const text = repairMojibakeText(rawText);
+    const hasPlaceholders = PLACEHOLDER_RE.test(text);
     PLACEHOLDER_RE.lastIndex = 0;
-    const out = applyReplacements(text, replacements);
-    const remaining = extractPlaceholders(out);
+    if (!hasPlaceholders && text === rawText) continue;
+    const out = hasPlaceholders
+      ? repairMojibakeText(applyReplacements(text, replacements))
+      : text;
+    const remaining = hasPlaceholders ? extractPlaceholders(out) : [];
     if (remaining.length > 0) {
-      logErrorToFile("Unfilled placeholders remain", {
-        shop_id: businessData.shop_id,
+      const issue = {
         file: path.relative(outputFolder, f),
         placeholders: remaining
+      };
+      unresolved.push(issue);
+      logErrorToFile("Unfilled placeholders remain", {
+        shop_id: businessData.shop_id,
+        file: issue.file,
+        placeholders: issue.placeholders
       });
     }
     fs.writeFileSync(f, out, "utf8");
+  }
+
+  if (unresolved.length > 0) {
+    const details = unresolved
+      .map((issue) => `${issue.file}: ${issue.placeholders.join(", ")}`)
+      .join("; ");
+    throw new Error(`Template fill failed for ${businessData.shop_id}: unresolved placeholders remain (${details})`);
   }
 
   // If the template has metadata.json, keep it in sync for previews/hosting that read it.
   const metaPath = path.join(outputFolder, "metadata.json");
   if (fs.existsSync(metaPath)) {
     try {
-      const raw = fs.readFileSync(metaPath, "utf8");
+      const raw = repairMojibakeText(fs.readFileSync(metaPath, "utf8"));
       const parsed = JSON.parse(raw);
       const about = replacements.ABOUT_TEXT || `${businessData.shop_name || ""} — ${businessData.category || ""}`.trim();
       parsed.name = businessData.shop_name || parsed.name;
-      parsed.description = about || parsed.description;
+      parsed.description = repairMojibakeText(about || parsed.description);
       fs.writeFileSync(metaPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
     } catch (err) {
       logErrorToFile("metadata.json update failed", {
@@ -603,6 +832,7 @@ async function fillTemplate(templatePath, businessData, opts = {}) {
   }
 
   const leadMetaPath = path.join(outputFolder, "_lead_meta.json");
+  const previewPath = path.relative(config.OUTPUT_DIR, outputFolder).split(path.sep).join("/");
   fs.writeFileSync(leadMetaPath, JSON.stringify({
     shop_id: businessData.shop_id,
     shop_name: businessData.shop_name,
@@ -620,6 +850,9 @@ async function fillTemplate(templatePath, businessData, opts = {}) {
     rating: businessData.rating || "",
     reviews_count: businessData.reviews_count || "",
     website_url: businessData.website_url || "",
+    preview_path: previewPath,
+    review_status: normalizeReviewStatus("pending"),
+    review_notes: "",
     generated_at: new Date().toISOString()
   }, null, 2) + "\n", "utf8");
 

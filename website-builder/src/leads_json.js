@@ -4,6 +4,14 @@ const path = require("path");
 
 const LEAD_FINDER_DATA = path.resolve(__dirname, "../../lead_finder/public/data");
 
+function slugify(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function findAllJsonFiles(dir) {
   const results = [];
   if (!fs.existsSync(dir)) return results;
@@ -37,13 +45,17 @@ function normalizeJsonLead(raw, meta, filePath) {
     || ("SHOP_" + crypto.createHash("sha1").update(String(seed)).digest("hex").slice(0, 10).toUpperCase());
 
   const socialLinks = Array.isArray(raw.social_media_links) ? raw.social_media_links : [];
+  const emails = Array.isArray(raw.emails) ? raw.emails.map((value) => String(value || "").trim()).filter(Boolean) : [];
+  const primaryEmail = raw.email || raw.primary_email || emails[0] || "";
   return {
     shop_id,
     shop_name: raw.name || raw.shop_name || "",
     category: raw.category || meta?.category || "",
     address: raw.address || raw.full_address || "",
     phone: raw.phone || raw.phone_number || "",
-    email: raw.email || raw.primary_email || "",
+    email: primaryEmail,
+    primary_email: primaryEmail,
+    emails,
     city: raw.city || meta?.city || "",
     country: meta?.country || "",
     website_url: raw.website || raw.website_url || "",
@@ -73,6 +85,56 @@ function readJsonLeads(filePath) {
     .map((row) => normalizeJsonLead(row, meta, filePath));
 }
 
+function dedupeLeads(leads) {
+  const byKey = new Map();
+  const scoreLead = (lead) => {
+    let score = 0;
+    if (lead.email) score += 5;
+    if (Array.isArray(lead.emails) && lead.emails.length) score += 3;
+    if (lead.website_url) score += 2;
+    if (lead.phone) score += 2;
+    if (Array.isArray(lead.social_media_links) && lead.social_media_links.length) score += 1;
+    return score;
+  };
+  for (const lead of leads) {
+    const key = String(lead.shop_id || lead.place_id || lead.google_maps_url || lead._sourceFile || "");
+    if (!key) continue;
+    const existing = byKey.get(key);
+    if (!existing || scoreLead(lead) > scoreLead(existing)) {
+      byKey.set(key, lead);
+    }
+  }
+  return [...byKey.values()];
+}
+
+function directJsonFallback() {
+  const prefix = String(process.env.ANALYTICS_KEY_PREFIX || "").trim().replace(/\\/g, "/");
+  const prefixParts = prefix.split("/").filter(Boolean);
+
+  const countryFilter = slugify(process.env.JSON_LEADS_COUNTRY_SLUG || prefixParts[0] || "");
+  const cityFilter = slugify(process.env.JSON_LEADS_CITY_SLUG || prefixParts[1] || "");
+  const categoryFilterRaw = String(
+    process.env.JSON_LEADS_CATEGORY_FILTER || process.env.ANALYTICS_CATEGORY_FILTER || ""
+  ).trim();
+  const allowedCategories = new Set(
+    categoryFilterRaw
+      .split(",")
+      .map((value) => slugify(value))
+      .filter(Boolean)
+  );
+
+  const leads = [];
+  for (const filePath of findAllJsonFiles(LEAD_FINDER_DATA)) {
+    const meta = parseMeta(filePath);
+    if (!meta) continue;
+    if (countryFilter && slugify(meta.country) !== countryFilter) continue;
+    if (cityFilter && slugify(meta.city) !== cityFilter) continue;
+    if (allowedCategories.size && !allowedCategories.has(slugify(meta.category))) continue;
+    leads.push(...readJsonLeads(filePath));
+  }
+  return dedupeLeads(leads);
+}
+
 function readReadyLeads() {
   const { getReadyToBuild } = require("../../analytics/tracker");
   let ready = getReadyToBuild();
@@ -97,7 +159,8 @@ function readReadyLeads() {
     if (!fs.existsSync(absFile)) continue;
     leads.push(...readJsonLeads(absFile));
   }
-  return leads;
+  if (leads.length > 0) return dedupeLeads(leads);
+  return directJsonFallback();
 }
 
 function readLeadsForPath(country, city, category) {

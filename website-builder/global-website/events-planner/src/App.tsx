@@ -328,7 +328,7 @@ const Gallery = () => {
 const Testimonials = () => {
   const testimonials = [
     {
-      quote: "Working with Ethereal Editor was like watching a dream manifest into reality. Claraâ€™s eye for rose-gold detailing is unparalleled.",
+      quote: "Working with Ethereal Editor was like watching a dream manifest into reality. Clara’s eye for rose-gold detailing is unparalleled.",
       author: "Sophia & James",
       location: "Lake Como, Italy"
     },
@@ -432,7 +432,7 @@ const Contact = () => {
                 <option>Wedding</option>
                 <option>Engagement</option>
                 <option>Private Gala</option>
-                <option>Corporate SoirÃ©e</option>
+                <option>Corporate Soirée</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -505,7 +505,7 @@ const Footer = () => {
         
         <div className="pt-12 border-t border-stone-800 w-full max-w-4xl text-center">
           <p className="font-label text-[10px] tracking-[2px] text-stone-500 uppercase">
-            Â© 2026 ETHEREAL EDITOR. ALL RIGHTS RESERVED.
+            © 2026 ETHEREAL EDITOR. ALL RIGHTS RESERVED.
           </p>
         </div>
       </div>

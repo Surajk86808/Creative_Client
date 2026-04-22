@@ -485,7 +485,7 @@ const Footer = () => {
         </div>
       </div>
       <div className="mt-20 border-t border-white/5 pt-10 px-6 flex flex-col md:flex-row justify-between items-center gap-6 max-w-7xl mx-auto">
-        <p className="text-xs text-white/40">Â© 2024 [[SHOP_NAME]]. Precision in Healing.</p>
+        <p className="text-xs text-white/40">© 2024 [[SHOP_NAME]]. Precision in Healing.</p>
         <div className="flex gap-8 text-xs text-white/40 uppercase tracking-widest">
           <a href="#" className="hover:text-secondary">Terms</a>
           <a href="#" className="hover:text-secondary">Privacy</a>

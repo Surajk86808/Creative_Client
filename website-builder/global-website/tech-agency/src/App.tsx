@@ -400,7 +400,7 @@ export default function App() {
         </div>
         
         <div className="pt-8 border-t border-outline-variant/5">
-          <p className="text-[10px] font-label text-gray-600 text-center tracking-[0.2em]">Â© 2024 [[SHOP_NAME]]. ALL RIGHTS RESERVED.</p>
+          <p className="text-[10px] font-label text-gray-600 text-center tracking-[0.2em]">© 2024 [[SHOP_NAME]]. ALL RIGHTS RESERVED.</p>
         </div>
       </footer>
 

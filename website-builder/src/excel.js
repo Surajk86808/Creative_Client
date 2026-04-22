@@ -198,16 +198,18 @@ async function updateRow(leadRow, url, status) {
 
 async function getStats() {
   const rows = await readAllLeads({ includeAll: true });
-  let done = 0;
+  let deployed = 0;
+  let built = 0;
   let pending = 0;
   let error = 0;
   for (const r of rows) {
     const status = String(r.status || "").trim().toLowerCase();
-    if (status === "done") done += 1;
+    if (status === "deployed" || status === "done") deployed += 1;
+    else if (status === "built" || status === "dry-run") built += 1;
     else if (status === "error") error += 1;
     else pending += 1;
   }
-  return { total: rows.length, done, pending, error };
+  return { total: rows.length, deployed, built, pending, error };
 }
 
 module.exports = { readAllLeads, updateRow, getStats };

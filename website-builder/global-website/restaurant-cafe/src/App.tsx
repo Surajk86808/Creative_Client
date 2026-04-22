@@ -1,20 +1,20 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { motion, useScroll, useTransform } from "motion/react";
-import { 
-  Pizza, 
-  Leaf, 
-  Star, 
-  MapPin, 
-  Clock, 
-  Phone, 
-  Send, 
-  ArrowRight, 
-  Bike, 
-  Flame,
+import {
+  UtensilsCrossed,
+  Leaf,
+  Star,
+  MapPin,
+  Clock,
+  Phone,
+  Send,
+  ArrowRight,
+  Bike,
+  Sparkles,
   Instagram,
   Facebook,
   Twitter,
@@ -24,53 +24,53 @@ import {
 } from "lucide-react";
 import { useState, useRef } from "react";
 
-const PIZZAS = [
+const FEATURED_ITEMS = [
   {
     id: 1,
     name: "[[SERVICE_1]]",
-    price: "$18",
-    description: "San Marzano tomatoes, buffalo mozzarella, fresh basil, and extra virgin olive oil.",
+    description: "[[SERVICE_1_TEXT]]",
     image: "[[ITEM_IMAGE_1]]",
-    tag: "Chef's Choice"
+    badge: "[[SERVICE_1_BADGE]]"
   },
   {
     id: 2,
     name: "[[SERVICE_2]]",
-    price: "$22",
-    description: "Spicy salami, tomato sauce, mozzarella, chili oil, and wildflower honey.",
+    description: "[[SERVICE_2_TEXT]]",
     image: "[[ITEM_IMAGE_2]]",
-    tag: "Spicy"
+    badge: "[[SERVICE_2_BADGE]]"
   },
   {
     id: 3,
     name: "[[SERVICE_3]]",
-    price: "$26",
-    description: "White base, wild mushrooms, fresh ricotta, chives, and black truffle oil.",
+    description: "[[SERVICE_3_TEXT]]",
     image: "[[ITEM_IMAGE_3]]",
-    tag: "Vegetarian"
+    badge: "[[SERVICE_3_BADGE]]"
   }
 ];
 
 const TESTIMONIALS = [
   {
-    initials: "JD",
-    name: "James Donahue",
-    text: "\"The crust is unlike anything I've had in the city. Truly authentic, charred in all the right places. The Margherita D.O.P. is a masterpiece.\""
+    initials: "[[TESTIMONIAL_1_INITIALS]]",
+    name: "[[TESTIMONIAL_1_NAME]]",
+    role: "[[TESTIMONIAL_1_ROLE]]",
+    text: "[[TESTIMONIAL_1_QUOTE]]"
   },
   {
-    initials: "AR",
-    name: "Alessia Rossi",
-    text: "\"Madre Pizza brings back memories of my summers in Salerno. The ingredients are top-notch and the atmosphere is pure New York soul.\""
+    initials: "[[TESTIMONIAL_2_INITIALS]]",
+    name: "[[TESTIMONIAL_2_NAME]]",
+    role: "[[TESTIMONIAL_2_ROLE]]",
+    text: "[[TESTIMONIAL_2_QUOTE]]"
   },
   {
-    initials: "MK",
-    name: "Marcus King",
-    text: "\"The Bee Sting pizza is the perfect balance of heat and sweet. Fast delivery and it arrives piping hot every single time.\""
+    initials: "[[TESTIMONIAL_3_INITIALS]]",
+    name: "[[TESTIMONIAL_3_NAME]]",
+    role: "[[TESTIMONIAL_3_ROLE]]",
+    text: "[[TESTIMONIAL_3_QUOTE]]"
   }
 ];
 
 export default function App() {
-  const [activeCategory, setActiveCategory] = useState("Pizza");
+  const [activeCategory, setActiveCategory] = useState("Featured");
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -78,20 +78,19 @@ export default function App() {
   });
 
   const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
+  const heroScale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
 
   return (
-    <div className="min-h-screen">
-      {/* Navbar */}
+    <div className="min-h-screen bg-white">
       <nav className="fixed top-0 w-full z-50 bg-white/85 backdrop-blur-md border-b border-deep-brown/5">
-        <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
+        <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto gap-4">
           <div className="min-w-0 text-2xl font-bold uppercase tracking-tighter text-primary font-display flex items-center gap-2">
-            <Pizza className="w-8 h-8" />
+            <UtensilsCrossed className="w-8 h-8" />
             <span className="truncate inline-block max-w-[55vw]">[[SHOP_NAME]]</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
-            {["Menu", "Our Story", "Locations", "Reviews"].map((item) => (
-              <a 
+            {["Highlights", "Our Story", "Contact", "Reviews"].map((item) => (
+              <a
                 key={item}
                 href={`#${item.toLowerCase().replace(" ", "-")}`}
                 className="text-deep-brown hover:text-primary font-medium transition-colors"
@@ -101,96 +100,104 @@ export default function App() {
             ))}
           </div>
           <button className="bg-primary text-white px-6 py-2 rounded font-display font-bold uppercase tracking-wide hover:bg-primary-dark transition-all active:scale-95">
-            Order Online
+            [[CTA_PRIMARY]]
           </button>
         </div>
       </nav>
 
-      {/* Hero Section */}
       <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden">
-        <motion.div 
-          style={{ opacity: heroOpacity, scale: heroScale }}
-          className="absolute inset-0 z-0"
-        >
-          <img 
-            className="w-full h-full object-cover" 
+        <motion.div style={{ opacity: heroOpacity, scale: heroScale }} className="absolute inset-0 z-0">
+          <img
+            className="w-full h-full object-cover"
             src="[[HERO_IMAGE_URL]]"
             alt="Hero image"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent"></div>
         </motion.div>
 
         <div className="relative z-10 text-center max-w-5xl px-6">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="inline-flex items-center bg-secondary text-white px-4 py-1 rounded-full mb-8 tracking-widest uppercase text-xs font-bold"
           >
             <Leaf className="w-3 h-3 mr-2 fill-current" />
-            [[TAGLINE]]
+            [[HERO_KICKER]]
           </motion.div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 }}
+            className="text-white/80 font-medium uppercase tracking-[0.3em] text-xs mb-5"
+          >
+            [[SHOP_NAME]]
+          </motion.p>
+
+          <motion.h1
+            initial={{ opacity: 0, scale: 0.94, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="font-display text-6xl md:text-[100px] font-bold text-white leading-[0.85] uppercase tracking-tighter mb-8"
+            className="font-display text-5xl md:text-[88px] font-bold text-white leading-[0.9] uppercase tracking-tighter mb-6"
           >
-            [[SHOP_NAME]]<br/>[[TAGLINE]]
+            [[HERO_HEADLINE]]
           </motion.h1>
 
-          <motion.div 
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
+            transition={{ delay: 0.5 }}
+            className="text-white/80 text-lg md:text-xl max-w-2xl mx-auto mb-12"
+          >
+            [[TAGLINE]]
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.65 }}
             className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12"
           >
             <button className="w-full md:w-auto bg-primary text-white font-display font-bold px-10 py-4 rounded-lg uppercase tracking-wider text-lg hover:bg-primary-dark transition-colors">
-              Order Delivery
+              [[CTA_PRIMARY]]
             </button>
             <button className="w-full md:w-auto border-2 border-white text-white font-display font-bold px-10 py-4 rounded-lg uppercase tracking-wider text-lg hover:bg-white hover:text-primary transition-all">
-              View Menu
+              [[CTA_SECONDARY]]
             </button>
           </motion.div>
 
-          {/* Delivery Strip */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
             className="bg-white/10 backdrop-blur-md rounded-xl p-4 inline-flex flex-wrap items-center justify-center gap-6 border border-white/10"
           >
-            <div className="flex items-center gap-3">
-              <Bike className="w-5 h-5 text-secondary" />
-              <span className="text-white font-bold">30 min Delivery</span>
-            </div>
-            <div className="hidden md:block w-px h-6 bg-white/20"></div>
-            <div className="flex items-center gap-3">
-              <Star className="w-5 h-5 text-tertiary fill-current" />
-              <span className="text-white font-bold">4.9/5 Rating</span>
-            </div>
-            <div className="hidden md:block w-px h-6 bg-white/20"></div>
-            <div className="flex items-center gap-3">
-              <Flame className="w-5 h-5 text-primary" />
-              <span className="text-white font-bold">Wood Fired</span>
-            </div>
+            {[
+              { icon: Bike, label: "[[VALUE_PROP_1]]" },
+              { icon: Star, label: "[[VALUE_PROP_2]]" },
+              { icon: Sparkles, label: "[[VALUE_PROP_3]]" }
+            ].map(({ icon: Icon, label }) => (
+              <div key={label} className="flex items-center gap-3">
+                <Icon className="w-5 h-5 text-tertiary" />
+                <span className="text-white font-bold">{label}</span>
+              </div>
+            ))}
           </motion.div>
         </div>
       </section>
 
-      {/* Menu Highlights */}
-      <section id="menu" className="py-24 bg-white px-6">
+      <section id="highlights" className="py-24 bg-white px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
             <div>
-              <span className="text-primary font-display font-bold tracking-[0.2em] uppercase text-sm block mb-2">Our Selection</span>
-              <h2 className="text-5xl font-display font-bold tracking-tight text-deep-brown">CRAFTED CLASSICS</h2>
+              <span className="text-primary font-display font-bold tracking-[0.2em] uppercase text-sm block mb-2">Featured Highlights</span>
+              <h2 className="text-5xl font-display font-bold tracking-tight text-deep-brown">SIGNATURE PICKS</h2>
             </div>
             <div className="flex bg-warm-bg p-1 rounded-xl">
-              {["Pizza", "Pasta", "Sides", "Desserts"].map((cat) => (
-                <button 
+              {["Featured", "Popular", "Seasonal", "New"].map((cat) => (
+                <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className={`px-6 py-2 rounded-lg font-display font-bold transition-all ${
@@ -204,9 +211,9 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {PIZZAS.map((pizza, idx) => (
-              <motion.div 
-                key={pizza.id}
+            {FEATURED_ITEMS.map((item, idx) => (
+              <motion.div
+                key={item.id}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -214,24 +221,21 @@ export default function App() {
                 className="group bg-warm-bg rounded-xl overflow-hidden editorial-shadow transition-all hover:translate-y-[-8px]"
               >
                 <div className="h-64 overflow-hidden relative">
-                  <img 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                    src={pizza.image}
-                    alt={pizza.name}
+                  <img
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    src={item.image}
+                    alt={item.name}
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute top-4 right-4 bg-tertiary text-white font-display px-3 py-1 rounded text-xs font-bold uppercase tracking-widest">
-                    {pizza.tag}
+                    {item.badge}
                   </div>
                 </div>
                 <div className="p-8">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-2xl font-display font-bold">{pizza.name}</h3>
-                    <span className="text-xl font-bold text-primary">{pizza.price}</span>
-                  </div>
-                  <p className="text-muted-brown font-light mb-6">{pizza.description}</p>
+                  <h3 className="text-2xl font-display font-bold mb-4">{item.name}</h3>
+                  <p className="text-muted-brown font-light mb-6">{item.description}</p>
                   <button className="flex items-center gap-2 text-primary font-display font-bold uppercase tracking-wider group-hover:gap-4 transition-all">
-                    Add to Order <ArrowRight className="w-4 h-4" />
+                    [[CTA_SECONDARY]] <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </motion.div>
@@ -240,42 +244,38 @@ export default function App() {
         </div>
       </section>
 
-      {/* About Section */}
       <section id="our-story" className="py-24 bg-warm-bg px-6 overflow-hidden">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="relative"
           >
-            <img 
-              className="rounded-xl object-cover w-full h-[600px] editorial-shadow" 
+            <img
+              className="rounded-xl object-cover w-full h-[600px] editorial-shadow"
               src="[[IMAGE_1]]"
-              alt="Pizza chef"
+              alt="Story image"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute -bottom-8 -right-8 bg-primary p-8 rounded-xl shadow-2xl hidden md:block">
-              <span className="font-display text-white text-4xl font-bold italic leading-tight block">Since<br/>1984</span>
+            <div className="absolute -bottom-8 -right-8 bg-primary p-8 rounded-xl shadow-2xl hidden md:block text-center">
+              <span className="font-display text-white text-4xl font-bold italic leading-tight block">[[STAT_1_VALUE]]</span>
+              <span className="text-white/70 uppercase tracking-[0.2em] text-xs font-bold">[[STAT_1_LABEL]]</span>
             </div>
           </motion.div>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="relative"
           >
-            <span className="font-display text-[120px] text-primary opacity-5 absolute -top-20 -left-10 select-none">â€œ</span>
-            <h2 className="text-5xl font-display font-bold tracking-tight text-deep-brown mb-8 relative">PIZZA IS NOT JUST FOOD, IT'S A HERITAGE.</h2>
+            <span className="font-display text-[120px] text-primary opacity-5 absolute -top-20 -left-10 select-none">&quot;</span>
+            <h2 className="text-5xl font-display font-bold tracking-tight text-deep-brown mb-8 relative">[[HERO_HEADLINE]]</h2>
             <div className="font-light text-xl text-muted-brown mb-10 leading-relaxed">
               [[ABOUT_TEXT]]
             </div>
             <ul className="space-y-6 mb-12">
-              {[
-                "72-Hour Naturally Fermented Dough",
-                "Original Wood-Fired Brick Ovens",
-                "Imported San Marzano Tomatoes"
-              ].map((item) => (
+              {["[[VALUE_PROP_1]]", "[[VALUE_PROP_2]]", "[[VALUE_PROP_3]]"].map((item) => (
                 <li key={item} className="flex items-center gap-4">
                   <div className="bg-secondary/10 p-2 rounded-full">
                     <Leaf className="w-5 h-5 text-secondary" />
@@ -285,26 +285,20 @@ export default function App() {
               ))}
             </ul>
             <button className="text-primary font-display font-bold border-b-2 border-primary pb-1 text-lg hover:text-primary-dark hover:border-primary-dark transition-all">
-              Read Our Full Story
+              [[CTA_SECONDARY]]
             </button>
           </motion.div>
         </div>
       </section>
 
-      {/* Stats Section */}
       <section className="bg-primary py-20 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
           {[
-            { label: "Oven Temperature", value: "485Â°C" },
-            { label: "Pizzas Served", value: "150k+" },
-            { label: "Local Partners", value: "12" }
+            { label: "[[STAT_1_LABEL]]", value: "[[STAT_1_VALUE]]" },
+            { label: "[[STAT_2_LABEL]]", value: "[[STAT_2_VALUE]]" },
+            { label: "[[STAT_3_LABEL]]", value: "[[STAT_3_VALUE]]" }
           ].map((stat) => (
-            <motion.div 
-              key={stat.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-            >
+            <motion.div key={stat.label} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}>
               <div className="font-display text-[64px] font-bold text-white leading-none mb-2">{stat.value}</div>
               <div className="text-white/60 font-medium tracking-[0.2em] uppercase text-sm">{stat.label}</div>
             </motion.div>
@@ -312,13 +306,12 @@ export default function App() {
         </div>
       </section>
 
-      {/* Testimonials */}
       <section id="reviews" className="py-24 bg-white px-6">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-display font-bold text-center mb-16 tracking-tight">VOICES FROM THE TABLE</h2>
+          <h2 className="text-4xl font-display font-bold text-center mb-16 tracking-tight">WHAT PEOPLE SAY</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {TESTIMONIALS.map((t, idx) => (
-              <motion.div 
+              <motion.div
                 key={t.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -329,14 +322,15 @@ export default function App() {
                 <div className="flex gap-1 text-tertiary mb-6">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
                 </div>
-                <p className="font-light italic text-muted-brown text-lg mb-8 leading-relaxed">
-                  {t.text}
-                </p>
+                <p className="font-light italic text-muted-brown text-lg mb-8 leading-relaxed">&quot;{t.text}&quot;</p>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-display font-bold">
                     {t.initials}
                   </div>
-                  <div className="font-display font-bold">{t.name}</div>
+                  <div>
+                    <div className="font-display font-bold">{t.name}</div>
+                    <div className="text-sm text-muted-brown">{t.role}</div>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -344,30 +338,29 @@ export default function App() {
         </div>
       </section>
 
-      {/* Order / Contact */}
-      <section id="locations" className="py-24 bg-white px-6 border-t border-deep-brown/5">
+      <section id="contact" className="py-24 bg-white px-6 border-t border-deep-brown/5">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20">
           <div>
-            <h2 className="text-5xl font-display font-bold tracking-tight mb-4">ORDER NOW</h2>
+            <h2 className="text-5xl font-display font-bold tracking-tight mb-4">[[CTA_PRIMARY]]</h2>
             <p className="text-muted-brown text-lg mb-10">[[TAGLINE]]</p>
             <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <input className="w-full bg-warm-bg border-none p-4 rounded-lg focus:ring-2 focus:ring-primary transition-all" placeholder="Full Name" type="text" />
                 <input className="w-full bg-warm-bg border-none p-4 rounded-lg focus:ring-2 focus:ring-primary transition-all" placeholder="Phone Number" type="tel" />
               </div>
-              <input className="w-full bg-warm-bg border-none p-4 rounded-lg focus:ring-2 focus:ring-primary transition-all" placeholder="Delivery Address" type="text" />
-              <textarea className="w-full bg-warm-bg border-none p-4 rounded-lg focus:ring-2 focus:ring-primary transition-all" placeholder="Your Order Details" rows={4}></textarea>
+              <input className="w-full bg-warm-bg border-none p-4 rounded-lg focus:ring-2 focus:ring-primary transition-all" placeholder="Address or request details" type="text" />
+              <textarea className="w-full bg-warm-bg border-none p-4 rounded-lg focus:ring-2 focus:ring-primary transition-all" placeholder="How can we help today?" rows={4}></textarea>
               <button className="w-full bg-primary text-white font-display font-bold py-4 rounded-lg uppercase tracking-widest text-lg hover:bg-primary-dark transition-colors shadow-lg active:scale-[0.98]">
-                Place Your Order
+                [[CTA_PRIMARY]]
               </button>
             </form>
           </div>
           <div className="flex flex-col gap-8">
             <div className="w-full h-[400px] rounded-xl overflow-hidden editorial-shadow">
-              <img 
-                className="w-full h-full object-cover" 
+              <img
+                className="w-full h-full object-cover"
                 src="[[IMAGE_2]]"
-                alt="Map"
+                alt="Location image"
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -376,14 +369,14 @@ export default function App() {
                 <MapPin className="w-6 h-6 text-secondary" />
                 <div>
                   <h4 className="font-display font-bold mb-1">Visit Us</h4>
-                  <p className="text-sm text-muted-brown">[[ADDRESS]]<br/>[[CITY]]</p>
+                  <p className="text-sm text-muted-brown">[[ADDRESS]]<br />[[CITY]]</p>
                 </div>
               </div>
               <div className="bg-warm-bg p-6 rounded-xl flex items-start gap-4">
                 <Clock className="w-6 h-6 text-secondary" />
                 <div>
-                  <h4 className="font-display font-bold mb-1">Hours</h4>
-                  <p className="text-sm text-muted-brown">Mon - Sun: 11:00 AM - 11:00 PM<br/>Fri - Sat: Late night til 2 AM</p>
+                  <h4 className="font-display font-bold mb-1">Availability</h4>
+                  <p className="text-sm text-muted-brown">[[STAT_2_VALUE]]<br />[[STAT_2_LABEL]]</p>
                 </div>
               </div>
             </div>
@@ -395,25 +388,22 @@ export default function App() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-deep-brown text-white py-16 px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-7xl mx-auto">
           <div className="space-y-6">
             <div className="text-xl font-bold uppercase text-primary font-display flex items-center gap-2">
-              <Pizza className="w-6 h-6" />
+              <UtensilsCrossed className="w-6 h-6" />
               <span>[[SHOP_NAME]]</span>
             </div>
-            <p className="text-white/60 font-light leading-relaxed">
-              Bringing the warmth of the wood-fired oven and the soul of Italian heritage to the streets of New York since 1984.
-            </p>
+            <p className="text-white/60 font-light leading-relaxed">[[FOOTER_DESCRIPTION]]</p>
           </div>
           <div>
             <h4 className="text-tertiary font-display font-bold mb-6 tracking-widest">QUICK LINKS</h4>
             <ul className="space-y-4 text-white/60">
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+              <li><a href="#highlights" className="hover:text-white transition-colors">Highlights</a></li>
+              <li><a href="#our-story" className="hover:text-white transition-colors">Our Story</a></li>
+              <li><a href="#reviews" className="hover:text-white transition-colors">Reviews</a></li>
+              <li><a href="#contact" className="hover:text-white transition-colors">Contact</a></li>
             </ul>
           </div>
           <div>
@@ -431,8 +421,8 @@ export default function App() {
             </div>
           </div>
           <div>
-            <h4 className="text-tertiary font-display font-bold mb-6 tracking-widest">JOIN THE FAMILY</h4>
-            <p className="text-white/60 text-sm mb-4">Get special offers and event invites.</p>
+            <h4 className="text-tertiary font-display font-bold mb-6 tracking-widest">STAY CONNECTED</h4>
+            <p className="text-white/60 text-sm mb-4">Updates, offers, and new reasons to stop by.</p>
             <div className="flex">
               <input className="bg-white/10 border-none rounded-l-lg p-3 w-full text-white text-sm focus:ring-1 focus:ring-primary" placeholder="[[EMAIL]]" type="email" />
               <button className="bg-primary text-white px-4 rounded-r-lg hover:bg-primary-dark transition-colors">
@@ -442,7 +432,7 @@ export default function App() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-12 pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-white/40 text-sm">Â© 2024 [[SHOP_NAME]]. All Rights Reserved.</p>
+          <p className="text-white/40 text-sm">© 2024 [[SHOP_NAME]]. All Rights Reserved.</p>
           <div className="flex gap-6 text-white/40">
             <CreditCard className="w-5 h-5" />
             <Wallet className="w-5 h-5" />

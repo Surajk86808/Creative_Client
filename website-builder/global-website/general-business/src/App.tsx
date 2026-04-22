@@ -121,7 +121,7 @@ const Hero = () => {
         >
           <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-white font-semibold text-sm w-fit mb-8 backdrop-blur-sm">
             <ShieldCheck className="w-4 h-4 mr-2 text-secondary-container" />
-            Licensed Â· Insured Â· Same-Day Service
+            Licensed · Insured · Same-Day Service
           </div>
           
           <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.1] mb-8 tracking-tight">
@@ -421,7 +421,7 @@ const Contact = () => {
               <div>
                 <h4 className="font-bold text-primary text-xl mb-2">Emergency Technical Line</h4>
                 <p className="text-on-surface-variant leading-relaxed">
-                  [[PHONE]] Â· 24/7 Availability
+                  [[PHONE]] · 24/7 Availability
                 </p>
               </div>
             </div>
@@ -484,7 +484,7 @@ const Footer = () => {
       
       <div className="max-w-7xl mx-auto px-6 pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
         <p className="text-white/40 text-sm font-light">
-          Â© 2024 Blueprint Master Trades. Precision Engineering in Every Repair.
+          © 2024 Blueprint Master Trades. Precision Engineering in Every Repair.
         </p>
         <div className="flex gap-8 text-xs text-white/30">
           <a href="#" className="hover:text-white">Sitemap</a>

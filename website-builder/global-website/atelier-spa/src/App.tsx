@@ -154,17 +154,17 @@ const Quote = () => {
 const Services = () => {
   const services = [
     {
-      icon: "âœ¨",
+      icon: "✨",
       title: "[[SERVICE_1]]",
       desc: "Advanced dermatological techniques fused with rare botanical extracts for transformative luminosity."
     },
     {
-      icon: "ðŸŒ¿",
+      icon: "🌿",
       title: "[[SERVICE_2]]",
       desc: "Structural massage therapies designed to release chronic tension and restore the body's natural alignment."
     },
     {
-      icon: "ðŸ’Ž",
+      icon: "💎",
       title: "[[SERVICE_3]]",
       desc: "Meticulous care for hands, feet, and hair, ensuring every detail reflects your inner elegance."
     }

@@ -385,7 +385,7 @@ export default function App() {
 
         <div className="max-w-7xl mx-auto px-6 py-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
           <span className="font-sans font-light text-sm tracking-wide text-gray-500">
-            Â© 2024 [[SHOP_NAME]]. ALL RIGHTS RESERVED.
+            © 2024 [[SHOP_NAME]]. ALL RIGHTS RESERVED.
           </span>
           <div className="flex gap-8 font-headline font-bold text-xs uppercase tracking-[0.2em] text-gray-500">
             <a href="#" className="hover:text-white transition-colors">Privacy</a>

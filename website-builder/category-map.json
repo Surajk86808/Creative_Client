@@ -180,7 +180,10 @@
         "lab",
         "pathology",
         "physiotherapy",
-        "therapy"
+        "therapy",
+        "ambulance",
+        "medical transport",
+        "emergency"
       ]
     },
     "wellness-botanical": {
@@ -315,7 +318,11 @@
         "lodge",
         "holiday",
         "vacation",
-        "homestay"
+        "homestay",
+        "hospitality",
+        "stay",
+        "staycation",
+        "suite"
       ]
     },
     "tech-security": {
@@ -343,7 +350,7 @@
     },
     "finance-accounting": {
       "name": "Finance / Accounting",
-      "dir": "general-business",
+      "dir": "finance-&-accounting-firm",
       "priority": 30,
       "keywords": [
         "finance",
@@ -366,7 +373,7 @@
     },
     "retail-fashion-photo-pet": {
       "name": "Retail / Fashion / Photo / Pet",
-      "dir": "general-business",
+      "dir": "multi-purpose-retail-store",
       "priority": 20,
       "keywords": [
         "shop",
@@ -400,7 +407,7 @@
     },
     "engineering-industrial": {
       "name": "Engineering / Industrial",
-      "dir": "general-business",
+      "dir": "nexus-heavy-industries",
       "priority": 25,
       "keywords": [
         "engineering",

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Backward-compatible wrapper for the canonical email sender CLI.
 
 This command now delegates to `email_sender/agent.py`.

@@ -24,7 +24,7 @@ function initDB() {
 
 function isProcessed(shopId) {
   const row = db.prepare("SELECT status FROM processed_shops WHERE shop_id = ?").get(shopId);
-  return row && row.status === "done";
+  return row && row.status === "deployed";
 }
 
 function markProcessing(shopId, shopName) {
@@ -40,16 +40,16 @@ function markProcessing(shopId, shopName) {
   stmt.run(shopId, shopName || "");
 }
 
-function markDone(shopId, templateUsed, vercelUrl) {
+function markBuilt(shopId, templateUsed) {
   db.prepare(
-    `UPDATE processed_shops SET status='done', template_used=?, vercel_url=?, deployed_at=datetime('now'), error_msg=NULL WHERE shop_id=?`
-  ).run(templateUsed || "", vercelUrl || "", shopId);
+    `UPDATE processed_shops SET status='built', template_used=?, deployed_at=datetime('now'), error_msg=NULL WHERE shop_id=?`
+  ).run(templateUsed || "", shopId);
 }
 
-function markDryRun(shopId, templateUsed) {
+function markDeployed(shopId, templateUsed, vercelUrl) {
   db.prepare(
-    `UPDATE processed_shops SET status='dry-run', template_used=?, vercel_url='', deployed_at=datetime('now'), error_msg=NULL WHERE shop_id=?`
-  ).run(templateUsed || "", shopId);
+    `UPDATE processed_shops SET status='deployed', template_used=?, vercel_url=?, deployed_at=datetime('now'), error_msg=NULL WHERE shop_id=?`
+  ).run(templateUsed || "", vercelUrl || "", shopId);
 }
 
 function markError(shopId, errorMsg) {
@@ -75,8 +75,8 @@ module.exports = {
   initDB,
   isProcessed,
   markProcessing,
-  markDone,
-  markDryRun,
+  markBuilt,
+  markDeployed,
   markError,
   resetShop,
   getAllProcessed,

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -15,6 +18,7 @@ from email_sender.agent import (
     select_template,
 )
 from email_sender.guardrails import validate_generated_email
+from email_sender.validation import validate_template_files
 
 
 class EmailSystemTests(unittest.TestCase):
@@ -46,6 +50,52 @@ class EmailSystemTests(unittest.TestCase):
             select_template("home_services", "default", template_doc),
             "Hello {{business_name}}",
         )
+
+    def test_array_template_schema_is_normalized(self) -> None:
+        category_bucket = {
+            "buckets": [
+                {
+                    "bucket_no": 4,
+                    "bucket_name": "Food & Hospitality",
+                    "categories": ["hotel", "restaurant"],
+                }
+            ]
+        }
+        bucket_templates = {
+            "meta": {},
+            "templates": [
+                {
+                    "bucket_no": 4,
+                    "bucket_name": "Food & Hospitality",
+                    "categories": ["hotel", "restaurant"],
+                    "scenarios": {
+                        "no_website": {
+                            "subject": "{{business_name}} needs a stronger website",
+                            "body": "Hi {{business_name}},\n\nWe can help in {{city}}.",
+                        }
+                    },
+                }
+            ],
+        }
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            category_path = tmp_path / "category_bucket.json"
+            template_path = tmp_path / "bucket_email_template.json"
+            category_path.write_text(json.dumps(category_bucket), encoding="utf-8")
+            template_path.write_text(json.dumps(bucket_templates), encoding="utf-8")
+
+            category_doc, template_doc = validate_template_files(category_path, template_path)
+
+        bucket, scenario, bucket_no = resolve_bucket_and_scenario("hotel", category_doc)
+        self.assertEqual(bucket, "bucket_4")
+        self.assertEqual(scenario, "no_website")
+        self.assertEqual(bucket_no, "4")
+
+        template_text = select_template(bucket, scenario, template_doc)
+        self.assertIn("Subject guidance:", template_text)
+        self.assertIn("Body guidance:", template_text)
+        self.assertIn("{{business_name}}", template_text)
 
     def test_template_variable_replacement(self) -> None:
         template = "Hi {{business_name}} in {{city}}"
@@ -125,6 +175,45 @@ class EmailSystemTests(unittest.TestCase):
             self.assertIn("Hourly", reason)
         finally:
             state_path.unlink(missing_ok=True)
+
+    def test_dry_run_no_groq_falls_back_to_lead_finder_public_data(self) -> None:
+        from email_sender import agent
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            repo_root = Path(tmp_dir)
+            lead_dir = repo_root / "lead_finder" / "public" / "data" / "india" / "bengaluru"
+            lead_dir.mkdir(parents=True, exist_ok=True)
+            (lead_dir / "bengaluru_leads.json").write_text(
+                json.dumps(
+                    [
+                        {
+                            "lead_id": "LEAD_BLR_001",
+                            "shop_name": "Botanical Studio",
+                            "location": "Bengaluru",
+                            "city": "Bengaluru",
+                            "category": "salon",
+                            "website_status": "none",
+                            "primary_email": "hello@botanical.example",
+                            "emails": ["hello@botanical.example"],
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            with mock.patch.object(agent, "REPO_ROOT", repo_root), mock.patch.object(
+                agent, "LEAD_FINDER_PUBLIC_DIR", repo_root / "lead_finder" / "public"
+            ), mock.patch.object(agent, "EMAIL_PUBLIC_DIR", repo_root / "public"), mock.patch.object(
+                agent, "OUTPUT_DIR", repo_root / "output"
+            ), mock.patch.object(
+                sys, "argv", ["agent.py", "bengaluru", "--dry-run", "--dry-run-no-groq"]
+            ):
+                with self.assertLogs("email_sender", level="INFO") as captured:
+                    agent.main()
+
+            joined = "\n".join(captured.output)
+            self.assertIn("Falling back to JSON leads.", joined)
+            self.assertIn("[DRY-RUN-NO-GROQ] lead_id=LEAD_BLR_001 email=hello@botanical.example", joined)
 
 
 if __name__ == "__main__":

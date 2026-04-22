@@ -22,7 +22,6 @@
     "better-sqlite3": "^11.0.0",
     "commander": "^11.0.0",
     "dotenv": "^16.0.0",
-    "groq-sdk": "^0.5.0",
     "exceljs": "^4.4.0"
   }
 }

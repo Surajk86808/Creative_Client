@@ -264,7 +264,7 @@ const Contact = () => {
         <section id="contact" className="py-24 px-8 bg-surface-container-low border-t border-bone/5">
           <div className="max-w-xl mx-auto">
             <h2 className="font-headline text-6xl text-bone tracking-[4px] mb-4 text-center">CLAIM YOUR CHAIR</h2>
-        <p className="text-muted text-center mb-12 font-light">[[ABOUT_TEXT]] • [[ADDRESS]] • [[PHONE]] • [[EMAIL]]</p>
+        <p className="text-muted text-center mb-12 font-light">[[ABOUT_TEXT]] . [[ADDRESS]] . [[PHONE]] . [[EMAIL]]</p>
             <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
           <div>
             <label className="block text-[10px] font-headline tracking-[3px] text-muted mb-2">FULL NAME</label>
@@ -335,7 +335,7 @@ const Footer = () => {
         </div>
       </div>
       <div className="w-full pt-12 border-t border-bone/5 flex justify-between items-center md:hidden">
-        <span className="text-[10px] text-muted tracking-[2px]">Â© 2024 [[SHOP_NAME]].</span>
+        <span className="text-[10px] text-muted tracking-[2px]">© 2024 [[SHOP_NAME]].</span>
       </div>
     </footer>
   );

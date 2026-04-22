@@ -195,7 +195,7 @@ export default function App() {
                   </div>
                   <div className="p-10">
                     <h3 className="text-2xl font-headline text-on-surface mb-2">{prop.title}</h3>
-                    <p className="text-sm text-on-surface-variant font-light mb-8 tracking-wide">{prop.location} â€¢ {prop.strategy}</p>
+                    <p className="text-sm text-on-surface-variant font-light mb-8 tracking-wide">{prop.location} • {prop.strategy}</p>
                     <a href="#" className="inline-flex items-center text-primary font-bold text-[10px] uppercase tracking-widest group-hover:gap-4 transition-all">
                       View Details <ArrowRight className="ml-2 w-4 h-4" />
                     </a>
@@ -295,7 +295,7 @@ export default function App() {
                   viewport={{ once: true }}
                   className="relative bg-background p-12 rounded-2xl border border-primary/5 group hover:border-primary/20 transition-all duration-500"
                 >
-                  <span className="absolute top-6 right-10 text-9xl font-serif text-primary/5 select-none">â€œ</span>
+                  <span className="absolute top-6 right-10 text-9xl font-serif text-primary/5 select-none">“</span>
                   <div className="flex gap-1 mb-8">
                     {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-primary fill-primary" />)}
                   </div>
@@ -427,7 +427,7 @@ export default function App() {
         </div>
         
         <div className="max-w-7xl mx-auto mt-24 pt-12 border-t border-primary/5 flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">
-          <p>Â© 2024 [[SHOP_NAME]]. All rights reserved.</p>
+          <p>© 2024 [[SHOP_NAME]]. All rights reserved.</p>
           <div className="flex gap-10">
             <a className="hover:text-primary transition-colors" href="#">Privacy</a>
             <a className="hover:text-primary transition-colors" href="#">Investment Strategy</a>

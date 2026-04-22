@@ -69,12 +69,16 @@ async function pipelineCommand(opts) {
   process.env.USE_JSON_LEADS = "true";
 
   const citySlug = slugify(opts.city);
+  process.env.JSON_LEADS_CITY_SLUG = citySlug;
   if (opts.categories) {
     const allowed = String(opts.categories)
       .split(",")
       .map((c) => slugify(c))
       .filter(Boolean);
-    if (allowed.length) process.env.ANALYTICS_CATEGORY_FILTER = allowed.join(",");
+    if (allowed.length) {
+      process.env.ANALYTICS_CATEGORY_FILTER = allowed.join(",");
+      process.env.JSON_LEADS_CATEGORY_FILTER = allowed.join(",");
+    }
   }
 
   await runLeadFinder({
@@ -89,6 +93,7 @@ async function pipelineCommand(opts) {
   const countrySlug = resolveCountrySlugForCity(opts.city);
   if (countrySlug) {
     process.env.ANALYTICS_KEY_PREFIX = `${countrySlug}/${citySlug}/`;
+    process.env.JSON_LEADS_COUNTRY_SLUG = countrySlug;
   }
 
   await runCommand({

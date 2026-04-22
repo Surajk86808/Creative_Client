@@ -22,6 +22,27 @@ async function ensureVercelInstalled() {
   }
 }
 
+function ensureWorkspaceDependencies() {
+  const workspaceNodeModules = path.join(config.ROOT_DIR, "node_modules");
+  if (!fs.existsSync(workspaceNodeModules)) {
+    throw new Error(
+      "Missing website-builder/node_modules. Run `npm install` once inside website-builder/ before deploying."
+    );
+  }
+  return workspaceNodeModules;
+}
+
+function ensureSharedNodeModulesLink(outputFolderPath) {
+  const workspaceNodeModules = ensureWorkspaceDependencies();
+  const target = path.join(outputFolderPath, "node_modules");
+  if (fs.existsSync(target)) return;
+  fs.symlinkSync(
+    workspaceNodeModules,
+    target,
+    process.platform === "win32" ? "junction" : "dir"
+  );
+}
+
 async function deployToVercel(outputFolderPath, shopId, templatePath) {
   if (!config.VERCEL_TOKEN) throw new Error("Missing VERCEL_TOKEN");
   const ok = await ensureVercelInstalled();
@@ -33,8 +54,8 @@ async function deployToVercel(outputFolderPath, shopId, templatePath) {
   const argsBase = ["--prod", "--yes", "--name", name, "--token", config.VERCEL_TOKEN];
 
   try {
-    // Build before deploy (Vite -> dist/).
-    await execFileAsync(npmCmd, ["install"], { cwd: outputFolderPath });
+    // Build before deploy using workspace-level dependencies.
+    ensureSharedNodeModulesLink(outputFolderPath);
     await execFileAsync(npmCmd, ["run", "build"], { cwd: outputFolderPath });
 
     const distPath = path.join(outputFolderPath, "dist");

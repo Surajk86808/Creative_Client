@@ -56,7 +56,7 @@ export default function App() {
           animate={{ opacity: 1, scale: 1 }}
           className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm mb-6 border border-outline-variant/20"
         >
-          <span className="text-lg">ðŸ†</span>
+          <span className="text-lg">🏆</span>
           <span className="font-headline font-bold text-primary-container text-sm">[[TAGLINE]]</span>
         </motion.div>
 
@@ -343,7 +343,7 @@ export default function App() {
             <h2 className="text-4xl font-headline font-extrabold text-primary mb-4">Start Your Journey</h2>
             <div className="inline-flex items-center gap-2 bg-secondary-container/20 px-4 py-2 rounded-full text-secondary font-bold text-sm mb-10">
               <Zap className="w-4 h-4" />
-              [[ADDRESS]] • [[PHONE]] • [[EMAIL]]
+              [[ADDRESS]] . [[PHONE]] . [[EMAIL]]
             </div>
             
             <form className="space-y-6">
@@ -416,7 +416,7 @@ export default function App() {
               <Instagram className="w-5 h-5 text-white/40 hover:text-secondary-container transition-colors cursor-pointer" />
             </div>
             <p className="text-white/40 text-xs font-medium">
-              Â© 2024 [[SHOP_NAME]]. All rights reserved.
+              © 2024 [[SHOP_NAME]]. All rights reserved.
             </p>
           </div>
         </div>

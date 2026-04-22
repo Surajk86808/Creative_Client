@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Google Maps scraper using Playwright with anti-detection controls."""
 
 from __future__ import annotations
@@ -8,6 +9,7 @@ import random
 import re
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote_plus, urljoin, urlparse
@@ -46,6 +48,8 @@ SOCIAL_HOST_HINTS = (
     "youtu.be",
     "pinterest.com",
 )
+ENRICH_MAX_WORKERS = 4
+ENRICH_SHORTLIST_DEFAULT = 40
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ANALYTICS_TRACKER_PATH = REPO_ROOT / "analytics" / "tracker.js"
 
@@ -431,19 +435,8 @@ def _scrape_listing(page: Page, city: str, category: str, place_id: str | None) 
             website = _extract_website_from_panel_html(page.content())
         except Exception:
             website = None
-    emails: list[str] = []
-    social_media_links: list[str] = []
-    if website:
-        emails.extend(_collect_contact_emails(website))
-        social_media_links.extend(_collect_social_links(website))
-    panel_emails = _collect_maps_panel_emails(page)
-    panel_social_links = _collect_maps_panel_social_links(page)
-    if panel_emails:
-        emails = _clean_emails(set(emails) | set(panel_emails))
-    if panel_social_links:
-        social_media_links = _clean_social_links(set(social_media_links) | set(panel_social_links))
-    else:
-        social_media_links = _clean_social_links(set(social_media_links))
+    emails = _collect_maps_panel_emails(page)
+    social_media_links = _collect_maps_panel_social_links(page)
 
     return {
         "name": (name or "").strip(),
@@ -496,6 +489,63 @@ def _save_progress(progress_path: Path, rows: list[dict[str, Any]]) -> None:
     """Persist in-run progress to JSON so crashes do not lose data."""
     progress_path.parent.mkdir(parents=True, exist_ok=True)
     progress_path.write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _enrichment_sort_key(row: dict[str, Any]) -> tuple[int, float, int]:
+    review_count = int(row.get("review_count") or 0)
+    rating = float(row.get("rating") or 0.0)
+    has_panel_email = 1 if row.get("primary_email") else 0
+    return (review_count, rating, -has_panel_email)
+
+
+def _shortlist_for_enrichment(
+    rows: list[dict[str, Any]],
+    max_results: int | None,
+) -> list[dict[str, Any]]:
+    candidates = [
+        row
+        for row in rows
+        if row.get("website")
+        and (not row.get("primary_email") or not row.get("social_media_links"))
+    ]
+    limit = max_results if max_results is not None else ENRICH_SHORTLIST_DEFAULT
+    candidates.sort(key=_enrichment_sort_key, reverse=True)
+    return candidates[: max(1, limit)]
+
+
+def _enrich_row_contacts(row: dict[str, Any]) -> tuple[list[str], list[str]]:
+    website = row.get("website")
+    if not website:
+        return [], row.get("social_media_links") or []
+    emails = _clean_emails(set(row.get("emails") or []) | set(_collect_contact_emails(website)))
+    social_links = _clean_social_links(
+        set(row.get("social_media_links") or []) | set(_collect_social_links(website))
+    )
+    return emails, social_links
+
+
+def _enrich_rows(rows: list[dict[str, Any]], max_results: int | None) -> None:
+    shortlist = _shortlist_for_enrichment(rows, max_results)
+    if not shortlist:
+        return
+
+    print(
+        f"[enrich] concurrent website/contact enrichment for {len(shortlist)} shortlisted lead(s)"
+    )
+    with ThreadPoolExecutor(max_workers=ENRICH_MAX_WORKERS) as executor:
+        futures = {executor.submit(_enrich_row_contacts, row): row for row in shortlist}
+        for future in as_completed(futures):
+            row = futures[future]
+            try:
+                emails, social_links = future.result()
+            except Exception as exc:
+                print(f"[warn] enrichment skipped for {row.get('name') or 'unknown'}: {exc}")
+                continue
+            if emails:
+                row["emails"] = emails
+                row["primary_email"] = emails[0]
+            if social_links:
+                row["social_media_links"] = social_links
 
 
 def _city_progress_path(city: str) -> Path:
@@ -575,7 +625,7 @@ def _scrape_category(
             try:
                 _random_mouse_move(page)
                 card.click(timeout=6000)
-                _sleep_random(2, 5)
+                _sleep_random(0.8, 1.6)
                 if _detect_captcha(page):
                     _pause_for_captcha(page)
 
@@ -606,7 +656,7 @@ def _scrape_category(
                 skipped_error += 1
                 continue
             finally:
-                _sleep_random(2, 5)
+                _sleep_random(0.3, 0.8)
 
         _save_progress(progress_path, progress_rows)
         # Save partial category data so interrupted runs still preserve progress.
@@ -625,6 +675,9 @@ def _scrape_category(
             print(f"[pause] batch complete -> sleeping {sleep_for:.1f}s")
             time.sleep(sleep_for)
 
+    _enrich_rows(results, max_results)
+    _save_progress(progress_path, progress_rows)
+    _save_category_rows(city=city, category=category, rows=results)
     print(f"[category] done: {category} scraped={len(results)}")
     return results
 

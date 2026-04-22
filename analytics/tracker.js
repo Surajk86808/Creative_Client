@@ -3,6 +3,14 @@ const path = require("path");
 
 const ANALYTICS_DIR = path.resolve(__dirname);
 const INDEX_FILE = path.join(ANALYTICS_DIR, "index.json");
+const VALID_STATUSES = new Set([
+  "scraped",
+  "building",
+  "built",
+  "deployed",
+  "error",
+  "rejected"
+]);
 
 function load() {
   if (!fs.existsSync(INDEX_FILE)) return {};
@@ -28,6 +36,9 @@ function validateEntry(entry) {
   if (typeof entry.lead_count !== "number") {
     throw new Error(`analytics/tracker: lead_count must be a number, got ${typeof entry.lead_count}`);
   }
+  if (!VALID_STATUSES.has(entry.status)) {
+    throw new Error(`analytics/tracker: invalid status "${entry.status}"`);
+  }
 }
 
 function markScraped({ country, city, category, leadCount, leadsFile }) {
@@ -41,10 +52,14 @@ function markScraped({ country, city, category, leadCount, leadsFile }) {
     scraped_at: new Date().toISOString(),
     lead_count: leadCount,
     leads_file: leadsFile,
-    build_started_at: data[key]?.build_started_at || null,
-    build_completed_at: data[key]?.build_completed_at || null,
-    built_count: data[key]?.built_count || 0,
-    status: data[key]?.status === "done" ? "done" : "scraped"
+    build_started_at: null,
+    build_completed_at: null,
+    built_count: 0,
+    deployed_count: 0,
+    error_count: 0,
+    last_error_at: null,
+    last_error: null,
+    status: "scraped"
   };
   validateEntry(entry);
   data[key] = entry;
@@ -60,13 +75,39 @@ function markBuilding({ country, city, category }) {
   save(data);
 }
 
-function markBuilt({ country, city, category, builtCount }) {
+function markBuilt({ country, city, category, builtCount, errorCount = 0 }) {
   const data = load();
   const key = makeKey(country, city, category);
   if (!data[key]) return;
   data[key].build_completed_at = new Date().toISOString();
   data[key].built_count = builtCount;
-  data[key].status = "done";
+  data[key].error_count = errorCount;
+  if (builtCount > 0) data[key].status = "built";
+  else if (errorCount > 0) data[key].status = "error";
+  else data[key].status = "scraped";
+  save(data);
+}
+
+function markDeployed({ country, city, category, deployedCount, errorCount = 0 }) {
+  const data = load();
+  const key = makeKey(country, city, category);
+  if (!data[key]) return;
+  data[key].deployed_count = deployedCount;
+  data[key].error_count = errorCount;
+  if (deployedCount > 0) data[key].status = "deployed";
+  else if (data[key].built_count > 0) data[key].status = "built";
+  else if (errorCount > 0) data[key].status = "error";
+  save(data);
+}
+
+function markError({ country, city, category, message }) {
+  const data = load();
+  const key = makeKey(country, city, category);
+  if (!data[key]) return;
+  data[key].status = "error";
+  data[key].error_count = Number(data[key].error_count || 0) + 1;
+  data[key].last_error_at = new Date().toISOString();
+  data[key].last_error = String(message || "");
   save(data);
 }
 
@@ -95,6 +136,14 @@ function runCli() {
     markBuilt(payload);
     return;
   }
+  if (command === "mark-deployed") {
+    markDeployed(payload);
+    return;
+  }
+  if (command === "mark-error") {
+    markError(payload);
+    return;
+  }
   if (command === "get-ready") {
     process.stdout.write(JSON.stringify(getReadyToBuild(), null, 2));
     return;
@@ -117,6 +166,8 @@ module.exports = {
   markScraped,
   markBuilding,
   markBuilt,
+  markDeployed,
+  markError,
   getReadyToBuild,
   getAll,
   makeKey

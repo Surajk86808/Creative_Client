@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Main CLI pipeline for web-agency lead generation."""
 
 from __future__ import annotations
@@ -553,6 +554,7 @@ def _write_city_leads_export(db: RegistryDB, city: str, rows: list[dict]) -> Non
             "phone": lead.phone,
             "emails": emails if isinstance(emails, list) else [],
             "primary_email": primary_email if isinstance(primary_email, str) else None,
+            "email": primary_email if isinstance(primary_email, str) else None,
             "social_media_links": social_media_links if isinstance(social_media_links, list) else [],
             "rating": lead.rating,
             "review_count": lead.review_count,
@@ -1649,6 +1651,7 @@ def _write_qualified_export(db: RegistryDB, rows: list[dict]) -> None:
             "phone": lead.phone,
             "emails": emails if isinstance(emails, list) else [],
             "primary_email": primary_email if isinstance(primary_email, str) else None,
+            "email": primary_email if isinstance(primary_email, str) else None,
             "social_media_links": social_media_links if isinstance(social_media_links, list) else [],
             "rating": lead.rating,
             "review_count": lead.review_count,
@@ -1674,6 +1677,17 @@ def _write_qualified_export(db: RegistryDB, rows: list[dict]) -> None:
     print(f"[qualified] exported {len(output)} rows -> {QUALIFIED_PATH.resolve()}")
 
 
+def _write_city_exports(db: RegistryDB, city: str, rows: list[dict]) -> None:
+    """Persist all city-level exports once per city run."""
+    _write_city_leads_export(db=db, city=city, rows=rows)
+    _write_city_no_website_export(db=db, city=city)
+    _write_city_with_web_export(db=db, city=city)
+    _write_city_big_brands_export(db=db, city=city)
+    _write_city_ai_opportunity_export(db=db, city=city)
+    export_voice_agent_leads(city, db.all_leads())
+    export_enterprise_voice_agent_leads(city, db.all_leads())
+
+
 def _process_single_category(
     *,
     db: RegistryDB,
@@ -1688,11 +1702,6 @@ def _process_single_category(
 ) -> None:
     """Analyze, qualify, and export after one category."""
     if not category_rows:
-        _write_city_leads_export(db=db, city=city, rows=[])
-        _write_city_no_website_export(db=db, city=city)
-        _write_city_with_web_export(db=db, city=city)
-        _write_city_big_brands_export(db=db, city=city)
-        _write_city_ai_opportunity_export(db=db, city=city)
         return
 
     all_rows.extend(category_rows)
@@ -1715,11 +1724,6 @@ def _process_single_category(
         f"new_qualified={cat_summary['new_qualified']} "
         f"new_rejected={cat_summary['new_rejected']}"
     )
-    _write_city_leads_export(db=db, city=city, rows=category_rows)
-    _write_city_no_website_export(db=db, city=city)
-    _write_city_with_web_export(db=db, city=city)
-    _write_city_big_brands_export(db=db, city=city)
-    _write_city_ai_opportunity_export(db=db, city=city)
 
     if out_path_arg:
         out_path = Path(out_path_arg)
@@ -1799,16 +1803,10 @@ def run_pipeline(args: argparse.Namespace) -> None:
                         phase_label="existing",
                         batch_index=batch_index,
                     )
-                    export_voice_agent_leads(city, city_db.all_leads())
-                    export_enterprise_voice_agent_leads(city, city_db.all_leads())
 
             if not categories_to_scrape:
                 print(f"[city] {city}: no categories left for scraping.")
-                _write_city_leads_export(db=city_db, city=city, rows=[])
-                _write_city_no_website_export(db=city_db, city=city)
-                _write_city_with_web_export(db=city_db, city=city)
-                _write_city_big_brands_export(db=city_db, city=city)
-                _write_city_ai_opportunity_export(db=city_db, city=city)
+                _write_city_exports(db=city_db, city=city, rows=city_rows)
                 _write_city_registry_export(db=city_db, city=city)
                 _write_qualified_export(db=city_db, rows=city_rows)
                 city_after_leads = city_db.all_leads()
@@ -1848,8 +1846,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
                         phase_label="scrape",
                         batch_index=batch_index,
                     )
-                    export_voice_agent_leads(city, city_db.all_leads())
-                    export_enterprise_voice_agent_leads(city, city_db.all_leads())
+            _write_city_exports(db=city_db, city=city, rows=city_rows)
             _write_city_registry_export(db=city_db, city=city)
             _write_qualified_export(db=city_db, rows=city_rows)
             city_after_leads = city_db.all_leads()

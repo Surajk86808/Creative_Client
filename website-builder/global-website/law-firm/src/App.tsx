@@ -113,7 +113,7 @@ export default function App() {
               className="mb-8 flex items-center gap-4"
             >
               <span className="text-primary font-sans text-[10px] md:text-xs tracking-[0.3em] uppercase bg-surface px-4 py-2 border border-outline/20">
-                LONDON Â· EST. 1984
+                LONDON · EST. 1984
               </span>
               <div className="h-[1px] w-12 md:w-24 bg-primary/40"></div>
             </motion.div>
@@ -181,7 +181,7 @@ export default function App() {
                 <h2 className="serif-title text-4xl md:text-5xl font-bold">Unrivaled Expertise in High-Stakes Environments.</h2>
               </motion.div>
               <a href="#" className="text-primary font-sans text-sm uppercase tracking-widest border-b border-primary/30 pb-2 hover:border-primary transition-all">
-                View All Practices â†’
+                View All Practices ->
               </a>
             </div>
 
@@ -329,7 +329,7 @@ export default function App() {
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
             {[
               {
-                quote: "In the world of high-value litigation, many talk about authorityâ€”Sovereign Authority embodies it. Their discretion is unmatched.",
+                quote: "In the world of high-value litigation, many talk about authority—Sovereign Authority embodies it. Their discretion is unmatched.",
                 author: "Managing Director",
                 firm: "Global Equity Partners"
               },
@@ -494,7 +494,7 @@ export default function App() {
 
         <div className="border-t border-outline/10 py-8 px-6 md:px-12">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 font-sans uppercase tracking-widest text-[10px]">
-            <p>Â© 2024 [[SHOP_NAME]]. All rights reserved. Confidentiality Guaranteed.</p>
+            <p>© 2024 [[SHOP_NAME]]. All rights reserved. Confidentiality Guaranteed.</p>
             <p>Licensed under SRA Authority #982245</p>
           </div>
         </div>
