@@ -172,7 +172,7 @@ export default function App() {
             <img 
               alt="Technical Lab" 
               className="w-full h-full object-cover" 
-              src="https://picsum.photos/seed/tech-lab/1200/800"
+              src="[[HERO_IMAGE_URL]]"
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent opacity-60"></div>
@@ -347,7 +347,7 @@ export default function App() {
               <img 
                 alt="Location Map" 
                 className="w-full h-full object-cover" 
-                src="https://picsum.photos/seed/map/800/600"
+                src="[[IMAGE_1]]"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-secondary/10 pointer-events-none"></div>

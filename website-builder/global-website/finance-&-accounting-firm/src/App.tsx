@@ -152,7 +152,7 @@ export default function App() {
               <div className="relative">
                 <div className="absolute inset-0 bg-accent/20 translate-x-4 translate-y-4 rounded-sm"></div>
                 <img
-                  src="https://picsum.photos/seed/finance-team-1/800/600"
+                  src="[[HERO_IMAGE_URL]]"
                   alt="Financial consulting meeting"
                   referrerPolicy="no-referrer"
                   className="rounded-sm relative z-10 w-full object-cover shadow-2xl h-[500px]"
@@ -204,7 +204,7 @@ export default function App() {
               <div className="relative">
                 <div className="absolute -left-4 -bottom-4 w-3/4 h-full bg-accent/10 -z-10 rounded-sm"></div>
                 <img
-                  src="https://picsum.photos/seed/finance-team-2/1000/800"
+                  src="[[IMAGE_1]]"
                   alt="Our professional accounting team"
                   referrerPolicy="no-referrer"
                   className="rounded-sm shadow-lg w-full"

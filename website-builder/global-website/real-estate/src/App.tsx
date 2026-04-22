@@ -22,21 +22,21 @@ const properties = [
     title: "[[SERVICE_1]]",
     location: "Zurich, Switzerland",
     strategy: "High Yield Core",
-    image: "https://picsum.photos/seed/real-estate-1/800/600",
+    image: "[[ITEM_IMAGE_1]]",
   },
   {
     id: 2,
     title: "[[SERVICE_2]]",
     location: "Dubai, UAE",
     strategy: "Appreciation Growth",
-    image: "https://picsum.photos/seed/real-estate-2/800/600",
+    image: "[[ITEM_IMAGE_2]]",
   },
   {
     id: 3,
     title: "[[SERVICE_3]]",
     location: "Malibu, USA",
     strategy: "Legacy Asset",
-    image: "https://picsum.photos/seed/real-estate-3/800/600",
+    image: "[[ITEM_IMAGE_3]]",
   },
 ];
 
@@ -99,7 +99,7 @@ export default function App() {
             <img 
               alt="Luxury skyscraper" 
               className="w-full h-full object-cover brightness-[0.3]" 
-              src="https://picsum.photos/seed/real-estate-hero/1920/1080"
+              src="[[HERO_IMAGE_URL]]"
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 gold-glow"></div>
@@ -219,7 +219,7 @@ export default function App() {
               <img 
                 alt="Architectural office" 
                 className="w-full grayscale hover:grayscale-0 transition-all duration-1000 border-8 border-primary/10 p-3" 
-                src="https://picsum.photos/seed/real-estate-interior/1200/800"
+                src="[[IMAGE_1]]"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute -bottom-8 -right-8 bg-primary text-background py-6 px-10 font-headline font-bold text-2xl shadow-2xl">
@@ -366,7 +366,7 @@ export default function App() {
               <img 
                 alt="Location map" 
                 className="w-full h-full object-cover grayscale opacity-40 absolute inset-0" 
-                src="https://picsum.photos/seed/real-estate-contact/1200/800"
+                src="[[IMAGE_2]]"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-background/40"></div>

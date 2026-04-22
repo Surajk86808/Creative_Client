@@ -139,9 +139,18 @@ function Hero() {
 
           <div className="mt-12 flex items-center space-x-4">
             <div className="flex -space-x-3">
-              {[1, 2, 3, 4].map((i) => (
-                <img key={i} src={`https://picsum.photos/seed/face${i}/100/100`} alt="Customer" className="w-10 h-10 rounded-full border-2 border-background object-cover" referrerPolicy="no-referrer" />
-              ))}
+              {(() => {
+                const avatars = ["[[AVATAR_IMAGE_1]]", "[[AVATAR_IMAGE_2]]", "[[AVATAR_IMAGE_3]]", "[[AVATAR_IMAGE_4]]"];
+                return [1, 2, 3, 4].map((i) => (
+                  <img
+                    key={i}
+                    src={avatars[(i - 1) % avatars.length]}
+                    alt="Customer"
+                    className="w-10 h-10 rounded-full border-2 border-background object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ));
+              })()}
             </div>
             <div className="text-sm">
               <div className="flex items-center text-yellow-400">
@@ -165,12 +174,12 @@ function Hero() {
            <div className="absolute inset-0 bg-gradient-to-tr from-surface to-background rounded-[40px] transform rotate-3 scale-105 -z-10"></div>
            <div className="grid grid-cols-2 gap-4 w-full">
               <div className="space-y-4 pt-12">
-                <img src="https://picsum.photos/seed/retail1/600/800" alt="Product" className="w-full rounded-2xl object-cover shadow-sm aspect-[4/5]" referrerPolicy="no-referrer" />
-                <img src="https://picsum.photos/seed/retail2/600/600" alt="Product" className="w-full rounded-2xl object-cover shadow-sm aspect-square" referrerPolicy="no-referrer" />
+                <img src="[[ITEM_IMAGE_1]]" alt="Product" className="w-full rounded-2xl object-cover shadow-sm aspect-[4/5]" referrerPolicy="no-referrer" />
+                <img src="[[ITEM_IMAGE_2]]" alt="Product" className="w-full rounded-2xl object-cover shadow-sm aspect-square" referrerPolicy="no-referrer" />
               </div>
               <div className="space-y-4 pb-12">
-                <img src="https://picsum.photos/seed/retail3/600/600" alt="Product" className="w-full rounded-2xl object-cover shadow-sm aspect-square" referrerPolicy="no-referrer" />
-                <img src="https://picsum.photos/seed/retail4/600/800" alt="Product" className="w-full rounded-2xl object-cover shadow-sm aspect-[4/5]" referrerPolicy="no-referrer" />
+                <img src="[[ITEM_IMAGE_3]]" alt="Product" className="w-full rounded-2xl object-cover shadow-sm aspect-square" referrerPolicy="no-referrer" />
+                <img src="[[ITEM_IMAGE_4]]" alt="Product" className="w-full rounded-2xl object-cover shadow-sm aspect-[4/5]" referrerPolicy="no-referrer" />
               </div>
            </div>
            
@@ -192,9 +201,9 @@ function Hero() {
 
 function Categories() {
   const categories = [
-    { name: SERVICE_1, image: "https://picsum.photos/seed/cat1/800/1000", delay: 0.1 },
-    { name: SERVICE_2, image: "https://picsum.photos/seed/cat2/800/1000", delay: 0.2 },
-    { name: SERVICE_3, image: "https://picsum.photos/seed/cat3/800/1000", delay: 0.3 },
+    { name: SERVICE_1, image: "[[ITEM_IMAGE_5]]", delay: 0.1 },
+    { name: SERVICE_2, image: "[[ITEM_IMAGE_6]]", delay: 0.2 },
+    { name: SERVICE_3, image: "[[ITEM_IMAGE_7]]", delay: 0.3 },
   ];
 
   return (
@@ -262,10 +271,10 @@ function About() {
             viewport={{ once: true }}
             className="order-2 lg:order-1 relative"
           >
-             <div className="aspect-square rounded-[3rem] overflow-hidden bg-surface relative">
-               <img src="https://picsum.photos/seed/aboutstore/1000/1000" alt="Store Interior" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-               <div className="absolute inset-0 bg-primary/10"></div>
-             </div>
+               <div className="aspect-square rounded-[3rem] overflow-hidden bg-surface relative">
+                <img src="[[IMAGE_1]]" alt="Store Interior" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-primary/10"></div>
+              </div>
              <motion.div 
                initial={{ opacity: 0, y: 20 }}
                whileInView={{ opacity: 1, y: 0 }}

@@ -12,6 +12,7 @@ const { logErrorToFile } = require("../logger");
 const { startPreviewServer } = require("../preview");
 const { outputDirForLead } = require("../leads");
 const { exportReports } = require("../exporter");
+const { maybePushAndCleanup } = require("../output_git");
 const tracker = require("../../../analytics/tracker");
 
 async function runCommand(opts) {
@@ -105,6 +106,15 @@ async function runCommand(opts) {
         : outputDirForLead(shopId, business.sourceRel || `${shopId}.xlsx`);
       const outputPath = await fillTemplate(template, business, { outputDir: nestedOutputDir });
 
+      try {
+        const pushRes = await maybePushAndCleanup(config.OUTPUT_DIR, outputPath, business);
+        if (pushRes?.pushed) {
+          console.log(`â†‘  Pushed generated code to GitHub (${pushRes.deletedLocal ? "deleted local copy" : "kept local copy"})`);
+        }
+      } catch (e) {
+        console.log(`WARN: Output Git push failed (continuing): ${e && e.message ? e.message : e}`);
+      }
+
       let url = null;
       if (dryRun) {
         console.log(`â„¹ï¸  Dry run: skipping deploy for ${shopId}`);
@@ -184,4 +194,3 @@ async function runCommand(opts) {
 }
 
 module.exports = { runCommand };
-

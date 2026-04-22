@@ -6,19 +6,19 @@ const MENU_ITEMS = [
     title: "[[SERVICE_1]]",
     desc: "Heirloom root vegetables roasted in wild honey, served with whipped mountain goat cheese and toasted hazelnuts.",
     price: "€28",
-    image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1760&auto=format&fit=crop"
+    image: "[[ITEM_IMAGE_1]]"
   },
   {
     title: "[[SERVICE_2]]",
     desc: "Ancient grain loaf fermented for 72 hours, served with hand-churned sea salt butter and wild garlic flowers.",
     price: "€14",
-    image: "https://images.unsplash.com/photo-1585478259715-876acc5be8eb?q=80&w=1740&auto=format&fit=crop"
+    image: "[[ITEM_IMAGE_2]]"
   },
   {
     title: "[[SERVICE_3]]",
     desc: "Late-season pear poached in star anise and vintage port, paired with a vanilla bean silk and pistachio crumble.",
     price: "€18",
-    image: "https://images.unsplash.com/photo-1551024506-0bccd828d307?q=80&w=1964&auto=format&fit=crop"
+    image: "[[ITEM_IMAGE_3]]"
   }
 ];
 

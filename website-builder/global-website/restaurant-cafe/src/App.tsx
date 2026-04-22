@@ -30,7 +30,7 @@ const PIZZAS = [
     name: "[[SERVICE_1]]",
     price: "$18",
     description: "San Marzano tomatoes, buffalo mozzarella, fresh basil, and extra virgin olive oil.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDL2bzp0V16KpZfb1on8Q4jrzkHESmJ7WEuW1CEZpg6gyb-OWRx2Jyn2RmsKef4iRFFeXX_yozloIwpnOPa1fKwr260izu3qEVCctEmnuk2vMMgsfiopS21yd6k5SppL21r8y-g_L300z2ySBkHRUx5isjcue_FAjPCpdWUEYIyGpynjSt3a4MFADA1RZ5b7QoedLL4LRrcsCunBWmqF8BcXS6Fair0FIWL1RnCuGDGfdZPknrQJvbgxZ9YZi29TWr2h-PtC3WVkVk",
+    image: "[[ITEM_IMAGE_1]]",
     tag: "Chef's Choice"
   },
   {
@@ -38,7 +38,7 @@ const PIZZAS = [
     name: "[[SERVICE_2]]",
     price: "$22",
     description: "Spicy salami, tomato sauce, mozzarella, chili oil, and wildflower honey.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAQdZak2JGOHBTEQnTfgUmxpNK0fs66qtLM34gBnVroaJDJN0yoU2m-qdti79oAFmn0hViXLMSElPYDuo0irZxDho4GpfrddaUQEjUDgHya5jPlEqfqaeuM_0I1zMJevB300vsVpQSSSpbDVfj9CiJ9QGhEuSLnab0cANvbhwO8Q5SbmJAq1nKpuuP1WoSbGiz7dxgR2j5j1EDtFDyV1YLsSbw3FbgRvqdsnoc4tayqn062x3VHUBbGROnvq1gOnsjxz5kKuYxIBAU",
+    image: "[[ITEM_IMAGE_2]]",
     tag: "Spicy"
   },
   {
@@ -46,7 +46,7 @@ const PIZZAS = [
     name: "[[SERVICE_3]]",
     price: "$26",
     description: "White base, wild mushrooms, fresh ricotta, chives, and black truffle oil.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCgbw_AufxZwRWItOjrXAsN8pjXc7bHWOx7kINFz6GC4souhHQZPyQmvztYH7qWwREhrZMxwsput5qYwAsOGMVSuW6sCY9jLEJT8zKnLLSFReYLo0vYXFaf_61V3XUD7-QXq-JKqZu3BCknG_eEvwT-6Ze8TaoXQbWiHmb95L8JpOq1FpepWhJ6Az583TL0-v6q1Cv6sCOWN5M8Ocb67jTez-Gg6YO0o5s1-5cJb-JIu6UVmkxVxFDAj6abYVLYRPDUacZHVZaToek",
+    image: "[[ITEM_IMAGE_3]]",
     tag: "Vegetarian"
   }
 ];
@@ -85,9 +85,9 @@ export default function App() {
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 bg-white/85 backdrop-blur-md border-b border-deep-brown/5">
         <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-          <div className="text-2xl font-bold uppercase tracking-tighter text-primary font-display flex items-center gap-2">
+          <div className="min-w-0 text-2xl font-bold uppercase tracking-tighter text-primary font-display flex items-center gap-2">
             <Pizza className="w-8 h-8" />
-            <span>[[SHOP_NAME]]</span>
+            <span className="truncate inline-block max-w-[55vw]">[[SHOP_NAME]]</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             {["Menu", "Our Story", "Locations", "Reviews"].map((item) => (
@@ -114,8 +114,8 @@ export default function App() {
         >
           <img 
             className="w-full h-full object-cover" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAvvh_YgwyAnjcfcjYihcr6L_I0VvvcsEuVJSfSCMjNzAm3EkoEi3QVfquAP4G4fB_PqVsX_fdsVvX01BroQK3M8zoigwfpsX8xALGqlf9AGMea8c6DipIOP8i105UzHKrtiO7A1fjsdhMEH7Xj1J5YC2DAzTghEiiM6QYAaMDApOdTgE37FCNRUf6SmHW9gmSTKyFuX3D27shzbSr5kvO7lluPcMsvTsroS-ks7co1DNm7I4hnmo79NIJsC8AN6CYr8rPr3OkOkY"
-            alt="Wood-fired pizza"
+            src="[[HERO_IMAGE_URL]]"
+            alt="Hero image"
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
@@ -251,7 +251,7 @@ export default function App() {
           >
             <img 
               className="rounded-xl object-cover w-full h-[600px] editorial-shadow" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBELX0nMOPbn4qSQmD0CYQ45PQpiegiCloWBFOune0wBw9huLlP7hKxRaSZtUQSl8ucUg13cx3L--Qnii6atZqN3feUIe10mvubMlaxFTUopr-8eN7DyjixXXm9x3cELJHGCGw6BfOhjR8JJgPymUSqC9byyADOfDtzQE7R4SVE-hCBJ7VQJkLWN6qOHhLitFpzced128D-AUIDQ8mcAO1cPkA2y8XRH0p8WZEn3CCm-KqlT_ln54zcGyrrXza8k8tHvJnE2eYcsX0"
+              src="[[IMAGE_1]]"
               alt="Pizza chef"
               referrerPolicy="no-referrer"
             />
@@ -366,7 +366,7 @@ export default function App() {
             <div className="w-full h-[400px] rounded-xl overflow-hidden editorial-shadow">
               <img 
                 className="w-full h-full object-cover" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIQSKQcGf9WjmKvP7EhtyHjn6vX8a6SzrH-oFILryqosCUg4OYgwsMBo8_jXzCUkKxnLLqMKdaoC81QpCo9w3Xuwn0HAotkIzrlexw-cGQsZ4Qg5gQNyiI7Ri8eWL4goX5qneBINJ8N6bIMt5b9MS2QFTqW__YdcRv_zs5Al29tcE6Tize1-FFmVNx6prgKqvysnfi_VmMyyjimQUT62le7tWZThxK0kHzpRVp-2G2qSphImCyX_aawpAl9a-KJQVG5A_fyNNRMWY"
+                src="[[IMAGE_2]]"
                 alt="Map"
                 referrerPolicy="no-referrer"
               />

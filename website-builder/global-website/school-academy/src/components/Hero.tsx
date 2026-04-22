@@ -62,7 +62,7 @@ export default function Hero() {
             <img 
               alt="School Campus" 
               className="w-full h-[500px] object-cover" 
-              src="https://images.unsplash.com/photo-1541339907198-e08756ebafe3?auto=format&fit=crop&q=80&w=1000"
+              src="[[HERO_IMAGE_URL]]"
               referrerPolicy="no-referrer"
             />
           </div>

@@ -13,7 +13,7 @@ export default function About() {
             className="rounded-2xl overflow-hidden aspect-[4/5] shadow-2xl"
           >
             <img 
-              src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2070&auto=format&fit=crop" 
+              src="[[IMAGE_1]]" 
               alt="Artisan hands" 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -27,7 +27,7 @@ export default function About() {
             className="absolute -bottom-12 -right-12 w-2/3 rounded-2xl overflow-hidden aspect-square border-[12px] border-background shadow-2xl hidden md:block"
           >
             <img 
-              src="https://images.unsplash.com/photo-1466637574441-749b8f19452f?q=80&w=1800&auto=format&fit=crop" 
+              src="[[IMAGE_2]]" 
               alt="Fresh ingredients" 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"

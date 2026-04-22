@@ -105,7 +105,7 @@ const Hero = () => {
     <section className="relative hero-gradient min-h-[90vh] flex items-center overflow-hidden pt-20">
       <div className="absolute inset-0 z-0 opacity-20">
         <img 
-          src="https://picsum.photos/seed/general-business-hero/2000/1200" 
+          src="[[HERO_IMAGE_URL]]" 
           alt="Industrial blueprints" 
           className="w-full h-full object-cover mix-blend-overlay"
           referrerPolicy="no-referrer"
@@ -399,7 +399,7 @@ const Contact = () => {
         <div className="space-y-10">
           <div className="w-full h-96 rounded-2xl overflow-hidden shadow-2xl grayscale hover:grayscale-0 transition-all duration-1000">
             <img 
-              src="https://picsum.photos/seed/general-business-map/1000/800" 
+              src="[[IMAGE_1]]" 
               alt="Dallas Map" 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"

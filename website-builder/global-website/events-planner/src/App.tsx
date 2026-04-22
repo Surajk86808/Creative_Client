@@ -102,7 +102,7 @@ const Hero = () => {
       <div className="absolute inset-0 bg-black/40 z-10"></div>
       <img 
         className="absolute inset-0 w-full h-full object-cover" 
-        src="https://picsum.photos/seed/wedding-reception/1920/1080" 
+        src="[[HERO_IMAGE_URL]]" 
         alt="Luxurious wedding reception"
         referrerPolicy="no-referrer"
       />
@@ -252,7 +252,7 @@ const About = () => {
           <div className="absolute -top-6 -left-6 md:-top-12 md:-left-12 w-32 h-32 md:w-64 md:h-64 bg-surface-container-high -z-10"></div>
           <img 
             className="w-full h-[400px] md:h-[700px] object-cover shadow-2xl" 
-            src="https://picsum.photos/seed/planner/800/1000" 
+            src="[[IMAGE_1]]" 
             alt="Elegant wedding planner"
             referrerPolicy="no-referrer"
           />
@@ -283,12 +283,12 @@ const About = () => {
 
 const Gallery = () => {
   const images = [
-    { src: "https://picsum.photos/seed/table/600/800", title: "Tuscan Romance", alt: "Table setting" },
-    { src: "https://picsum.photos/seed/couple/600/400", title: "Eternal Golden Hour", alt: "Couple in field" },
-    { src: "https://picsum.photos/seed/cake/600/600", title: "Sculpted Elegance", alt: "Wedding cake" },
-    { src: "https://picsum.photos/seed/arch/600/800", title: "Garden Sanctuary", alt: "Floral arch" },
-    { src: "https://picsum.photos/seed/invitation/600/400", title: "Heirloom Paper", alt: "Invitations" },
-    { src: "https://picsum.photos/seed/night/600/700", title: "Midnight Whimsy", alt: "Night reception" },
+    { src: "[[GALLERY_IMAGE_1]]", title: "Tuscan Romance", alt: "Table setting" },
+    { src: "[[GALLERY_IMAGE_2]]", title: "Eternal Golden Hour", alt: "Couple in field" },
+    { src: "[[GALLERY_IMAGE_3]]", title: "Sculpted Elegance", alt: "Wedding cake" },
+    { src: "[[GALLERY_IMAGE_4]]", title: "Garden Sanctuary", alt: "Floral arch" },
+    { src: "[[GALLERY_IMAGE_5]]", title: "Heirloom Paper", alt: "Invitations" },
+    { src: "[[GALLERY_IMAGE_6]]", title: "Midnight Whimsy", alt: "Night reception" },
   ];
 
   return (

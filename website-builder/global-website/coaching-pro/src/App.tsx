@@ -116,7 +116,7 @@ export default function App() {
             <img 
               alt="Empowered students" 
               className="w-full h-full object-cover" 
-              src="https://picsum.photos/seed/education/800/800"
+              src="[[HERO_IMAGE_URL]]"
               referrerPolicy="no-referrer"
             />
           </div>
@@ -252,7 +252,7 @@ export default function App() {
           >
             <div className="aspect-[4/5] rounded-3xl overflow-hidden border-8 border-white/10">
               <img 
-                src="https://picsum.photos/seed/mentor/800/1000" 
+                src="[[IMAGE_1]]" 
                 alt="Mentorship" 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -305,13 +305,13 @@ export default function App() {
                 name: "Sarah Jenkins",
                 role: "Senior Lead at Fintech Co",
                 quote: "The mentorship at AchieveElite didn't just help me get a job; it completely reshaped how I approach complex problems. I felt truly elite.",
-                img: "https://i.pravatar.cc/150?u=sarah"
+                img: "[[AVATAR_IMAGE_1]]"
               },
               {
                 name: "David Chen",
                 role: "CTO at Stellar Systems",
                 quote: "Transitioning from academia to executive leadership was seamless with AchieveElite's coaching. The curriculum is world-class.",
-                img: "https://i.pravatar.cc/150?u=david"
+                img: "[[AVATAR_IMAGE_2]]"
               }
             ].map((t, i) => (
               <motion.div 

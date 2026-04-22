@@ -72,7 +72,7 @@ const Hero = () => {
         <img 
           alt="Performance Engine" 
           className="w-full h-full object-cover brightness-[0.25]" 
-          src="https://picsum.photos/seed/auto-garage-hero/2000/1200"
+          src="[[HERO_IMAGE_URL]]"
           referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 grid-overlay z-10"></div>
@@ -225,7 +225,7 @@ const WhyUs = () => {
           <img 
             alt="Industrial Machinery" 
             className="w-full grayscale brightness-75 border-l-4 border-primary" 
-            src="https://picsum.photos/seed/auto-garage-about/1000/800"
+            src="[[IMAGE_1]]"
             referrerPolicy="no-referrer"
           />
           <div className="absolute -bottom-6 -right-6 bg-primary p-8 hidden md:block">

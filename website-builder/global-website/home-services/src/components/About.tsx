@@ -12,7 +12,7 @@ export default function About() {
           className="relative order-2 md:order-1"
         >
           <img 
-            src="https://picsum.photos/seed/artisan/800/1000" 
+            src="[[IMAGE_1]]" 
             alt="Artisan hands working" 
             className="w-full aspect-[4/5] object-cover rounded-[3rem] shadow-2xl"
             referrerPolicy="no-referrer"

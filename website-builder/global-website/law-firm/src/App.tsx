@@ -99,7 +99,7 @@ export default function App() {
               <img 
                 alt="Luxury law firm interior" 
                 className="w-full h-full object-cover opacity-30 grayscale brightness-[0.18] saturate-[0.8]" 
-                src="https://picsum.photos/seed/law-firm-hero/1920/1080"
+                src="[[HERO_IMAGE_URL]]"
                 referrerPolicy="no-referrer"
               />
             <div className="absolute inset-0 hero-overlay"></div>
@@ -239,7 +239,7 @@ export default function App() {
               <img 
                 alt="Senior Partner" 
                 className="grayscale brightness-75 w-full aspect-[4/5] object-cover" 
-                src="https://picsum.photos/seed/law-firm-meeting/800/600"
+                src="[[IMAGE_1]]"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute -bottom-8 -right-8 bg-primary p-8 md:p-12 hidden md:block">
@@ -418,7 +418,7 @@ export default function App() {
                 <img 
                   alt="Location Map" 
                   className="w-full h-full object-cover brightness-50" 
-                  src="https://picsum.photos/seed/law-firm-map/1000/800"
+                  src="[[IMAGE_2]]"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-primary/10 mix-blend-overlay"></div>

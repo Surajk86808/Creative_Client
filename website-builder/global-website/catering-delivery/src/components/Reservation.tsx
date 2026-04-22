@@ -74,7 +74,7 @@ export default function Reservation() {
         >
           <div className="rounded-3xl overflow-hidden h-[400px] shadow-2xl grayscale hover:grayscale-0 transition-all duration-1000">
             <img 
-              src="https://images.unsplash.com/photo-1524813686514-a57563d77965?q=80&w=1932&auto=format&fit=crop" 
+              src="[[IMAGE_3]]" 
               alt="Location" 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"

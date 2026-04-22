@@ -15,7 +15,7 @@ export default function About() {
           <img 
             alt="Principal speaking" 
             className="relative z-10 rounded-[20px] shadow-2xl w-full h-[600px] object-cover" 
-            src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=1000"
+            src="[[IMAGE_1]]"
             referrerPolicy="no-referrer"
           />
         </motion.div>

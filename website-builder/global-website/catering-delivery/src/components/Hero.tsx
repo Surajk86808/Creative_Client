@@ -7,7 +7,7 @@ export default function Hero() {
       <div 
         className="absolute inset-0 bg-cover bg-center"
         style={{ 
-          backgroundImage: "url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070&auto=format&fit=crop')",
+          backgroundImage: "url('[[HERO_IMAGE_URL]]')",
           backgroundPosition: 'center 30%'
         }}
       >

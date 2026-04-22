@@ -191,7 +191,7 @@ export default function App() {
         {/* Right Image Pane */}
         <div className="w-full md:w-1/2 relative min-h-[50vh] md:min-h-full flex items-end">
           <img 
-            src="https://picsum.photos/seed/nexus-heavy/2670/1800" 
+            src="[[HERO_IMAGE_URL]]" 
             alt="Industrial Welding" 
             className="absolute inset-0 w-full h-full object-cover grayscale opacity-80"
             referrerPolicy="no-referrer"

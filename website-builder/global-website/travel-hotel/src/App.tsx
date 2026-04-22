@@ -31,7 +31,7 @@ const destinations = [
     title: 'Maldives',
     category: 'Island Paradise',
     price: '$4,200',
-    image: 'https://picsum.photos/seed/travel-dest-1/1000/700',
+    image: '[[ITEM_IMAGE_1]]',
     alt: 'Luxury overwater bungalow in the Maldives'
   },
   {
@@ -39,7 +39,7 @@ const destinations = [
     title: 'Zermatt',
     category: 'Alpine Luxury',
     price: '$3,800',
-    image: 'https://picsum.photos/seed/travel-dest-2/1000/700',
+    image: '[[ITEM_IMAGE_2]]',
     alt: 'Snow-capped Swiss mountain peaks'
   },
   {
@@ -47,7 +47,7 @@ const destinations = [
     title: 'Kyoto',
     category: 'Cultural Heritage',
     price: '$2,900',
-    image: 'https://picsum.photos/seed/travel-dest-3/1000/700',
+    image: '[[ITEM_IMAGE_3]]',
     alt: 'Traditional Japanese Zen garden'
   }
 ];
@@ -58,14 +58,14 @@ const testimonials = [
     name: 'James Wilson',
     role: 'CEO, TechNorth',
     content: '"The level of detail was staggering. From the private driver waiting at the terminal to the surprise sunset dinner on the dunes, everything was flawless."',
-    avatar: 'https://i.pravatar.cc/150?u=james'
+    avatar: '[[AVATAR_IMAGE_1]]'
   },
   {
     id: 2,
     name: 'Elena Rodriguez',
     role: 'Architectural Designer',
     content: '"Horizon Voyager doesn\'t just plan trips; they deliver magic. Our Japanese odyssey was the most seamless and enriching experience of our lives."',
-    avatar: 'https://i.pravatar.cc/150?u=elena'
+    avatar: '[[AVATAR_IMAGE_2]]'
   }
 ];
 
@@ -137,7 +137,7 @@ export default function App() {
         <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0">
             <img 
-              src="https://picsum.photos/seed/travel-hero/2000/1200" 
+              src="[[HERO_IMAGE_URL]]" 
               alt="Luxury travel hero"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -263,7 +263,7 @@ export default function App() {
             <div className="relative w-full md:w-1/2">
               <div className="aspect-square rounded-lg overflow-hidden shadow-2xl">
                 <img 
-                  src="https://picsum.photos/seed/travel-about/1000/900" 
+                  src="[[IMAGE_1]]" 
                   alt="Luxury experience"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"

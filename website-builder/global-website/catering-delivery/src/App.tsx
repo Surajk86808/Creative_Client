@@ -77,19 +77,19 @@ export default function App() {
                   quote: "An absolute masterclass in restraint and quality. The bread alone is worth the flight from London.",
                   author: "Clara Montagu",
                   role: "Food Critic, The Herald",
-                  img: "https://picsum.photos/seed/catering-testimonial-1/300/300"
+                  img: "[[AVATAR_IMAGE_1]]"
                 },
                 {
                   quote: "They don't just serve food; they serve memories. The atmosphere feels like a warm embrace.",
                   author: "Julian Rossi",
                   role: "Art Collector",
-                  img: "https://picsum.photos/seed/catering-testimonial-2/300/300"
+                  img: "[[AVATAR_IMAGE_2]]"
                 },
                 {
                   quote: "The most sincere dining experience I've had in years. Every ingredient speaks of its origin.",
                   author: "Elena Vance",
                   role: "Botanist",
-                  img: "https://picsum.photos/seed/catering-testimonial-3/300/300"
+                  img: "[[AVATAR_IMAGE_3]]"
                 }
               ].map((item, i) => (
                 <motion.div 

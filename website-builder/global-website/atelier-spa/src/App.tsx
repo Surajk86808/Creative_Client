@@ -101,8 +101,8 @@ const Hero = () => {
             className="mt-16 bg-surface p-6 inline-flex items-center gap-4 shadow-[0_20px_40px_rgba(28,24,17,0.06)] border border-outline-variant/10"
           >
             <div className="flex -space-x-2">
-              <img className="w-10 h-10 rounded-full border-2 border-surface" src="https://picsum.photos/seed/woman1/100/100" alt="Client" referrerPolicy="no-referrer" />
-              <img className="w-10 h-10 rounded-full border-2 border-surface" src="https://picsum.photos/seed/man1/100/100" alt="Client" referrerPolicy="no-referrer" />
+              <img className="w-10 h-10 rounded-full border-2 border-surface" src="[[AVATAR_IMAGE_1]]" alt="Client" referrerPolicy="no-referrer" />
+              <img className="w-10 h-10 rounded-full border-2 border-surface" src="[[AVATAR_IMAGE_2]]" alt="Client" referrerPolicy="no-referrer" />
             </div>
             <div>
               <div className="flex text-primary-container mb-0.5">
@@ -119,7 +119,7 @@ const Hero = () => {
         <img 
           alt="Spa interior" 
           className="w-full h-full object-cover" 
-          src="https://picsum.photos/seed/spa-hero/1200/1600" 
+          src="[[HERO_IMAGE_URL]]" 
           referrerPolicy="no-referrer"
         />
       </div>
@@ -241,7 +241,7 @@ const About = () => {
               viewport={{ once: true }}
               className="col-span-8"
             >
-              <img alt="Atelier process" className="w-full h-[500px] object-cover" src="https://picsum.photos/seed/process/800/1000" referrerPolicy="no-referrer" />
+              <img alt="Atelier process" className="w-full h-[500px] object-cover" src="[[IMAGE_1]]" referrerPolicy="no-referrer" />
             </motion.div>
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
@@ -250,7 +250,7 @@ const About = () => {
               transition={{ delay: 0.3 }}
               className="col-span-4 mt-20"
             >
-              <img alt="Spa detail" className="w-full h-[300px] object-cover" src="https://picsum.photos/seed/detail/400/600" referrerPolicy="no-referrer" />
+              <img alt="Spa detail" className="w-full h-[300px] object-cover" src="[[IMAGE_2]]" referrerPolicy="no-referrer" />
             </motion.div>
           </div>
           <div className="absolute -bottom-10 -right-10 bg-primary-container p-12 hidden md:block">
@@ -383,7 +383,7 @@ const Contact = () => {
           <div className="h-[400px] bg-surface-container grayscale hover:grayscale-0 transition-all duration-700 overflow-hidden">
             <img 
               className="w-full h-full object-cover" 
-              src="https://picsum.photos/seed/map/800/600" 
+              src="[[IMAGE_3]]" 
               alt="Location" 
               referrerPolicy="no-referrer"
             />

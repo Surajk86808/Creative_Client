@@ -5,9 +5,57 @@ const { ensureDir } = require("./utils");
 const { logErrorToFile } = require("./logger");
 
 // Supports both "{{PLACEHOLDER}}" (HTML-friendly) and "[[PLACEHOLDER]]" (JSX-friendly)
-const PLACEHOLDER_RE = /(?:\{\{|\[\[)([A-Z_]+)(?:\}\}|\]\])/g;
+const PLACEHOLDER_RE = /(?:\{\{|\[\[)([A-Z0-9_]+)(?:\}\}|\]\])/g;
 
 const SKIP_DIR_NAMES = new Set(["node_modules", "dist", ".git", "build", "coverage", ".npm-cache"]);
+
+function normalizeWhitespace(s) {
+  return String(s || "").replace(/\s+/g, " ").trim();
+}
+
+function clampWords(s, maxWords) {
+  if (!maxWords || maxWords <= 0) return "";
+  const text = normalizeWhitespace(s);
+  if (!text) return "";
+  const parts = text.split(" ");
+  if (parts.length <= maxWords) return text;
+  return `${parts.slice(0, maxWords).join(" ")}...`;
+}
+
+function clampChars(s, maxChars) {
+  if (!maxChars || maxChars <= 0) return "";
+  const text = normalizeWhitespace(s);
+  if (text.length <= maxChars) return text;
+  if (maxChars <= 3) return ".".repeat(maxChars);
+  return `${text.slice(0, maxChars - 3).trimEnd()}...`;
+}
+
+function clampText(s, { maxWords, maxChars } = {}) {
+  let out = normalizeWhitespace(s);
+  if (maxWords) out = clampWords(out, maxWords);
+  if (maxChars) out = clampChars(out, maxChars);
+  return out;
+}
+
+function cleanShopName(rawName) {
+  let name = normalizeWhitespace(rawName);
+  if (!name) return "";
+
+  // Common scrape pattern: "Brand (tagline...)" — keep just the brand for UI.
+  const parenIdx = name.indexOf("(");
+  if (parenIdx > 0 && name.length > 36) name = name.slice(0, parenIdx).trim();
+
+  // Also trim long suffixes like " - Something" / " | Something".
+  for (const sep of [" - ", " | ", " • ", " — ", " – ", ": "]) {
+    const idx = name.indexOf(sep);
+    if (idx > 0 && name.length > 36) {
+      name = name.slice(0, idx).trim();
+      break;
+    }
+  }
+
+  return clampText(name, { maxWords: 6, maxChars: 42 });
+}
 
 function listFilesRecursively(dir) {
   const out = [];
@@ -64,13 +112,252 @@ async function loadGroqClient() {
 function buildBaseReplacements(businessData) {
   return {
     SHOP_ID: businessData.shop_id || "",
-    SHOP_NAME: businessData.shop_name || "",
-    CATEGORY: businessData.category || "",
-    ADDRESS: businessData.address || "",
-    PHONE: businessData.phone || "",
-    EMAIL: businessData.email || "",
-    CITY: businessData.city || ""
+    SHOP_NAME: cleanShopName(businessData.shop_name) || "",
+    CATEGORY: clampText(businessData.category || "", { maxWords: 8, maxChars: 60 }),
+    ADDRESS: clampText(businessData.address || "", { maxWords: 18, maxChars: 120 }),
+    PHONE: clampText(businessData.phone || "", { maxWords: 6, maxChars: 30 }),
+    EMAIL: clampText(businessData.email || "", { maxWords: 6, maxChars: 64 }),
+    CITY: clampText(businessData.city || "", { maxWords: 4, maxChars: 32 })
   };
+}
+
+function enforceGeneratedLimits(values) {
+  const out = { ...(values || {}) };
+  for (const [key, val] of Object.entries(out)) {
+    if (val == null) continue;
+    if (key === "TAGLINE") out[key] = clampText(val, { maxWords: 10, maxChars: 80 });
+    else if (key === "ABOUT_TEXT") out[key] = clampText(val, { maxWords: 50, maxChars: 320 });
+    else if (key.startsWith("SERVICE_")) out[key] = clampText(val, { maxWords: 8, maxChars: 56 });
+    else if (key === "CTA_TEXT") out[key] = clampText(val, { maxWords: 4, maxChars: 24 });
+    else if (key === "META_TITLE") out[key] = clampText(val, { maxWords: 12, maxChars: 60 });
+    else if (key === "META_DESCRIPTION") out[key] = clampText(val, { maxWords: 28, maxChars: 160 });
+    else if (key.endsWith("_TEXT")) out[key] = clampText(val, { maxWords: 40, maxChars: 260 });
+    else out[key] = clampText(val, { maxWords: 18, maxChars: 180 });
+  }
+  return out;
+}
+
+function toCategoryQuery(raw) {
+  const cleaned = String(raw || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  if (!cleaned) return "";
+  return cleaned.split(" ").filter(Boolean).slice(0, 6).join(",");
+}
+
+function unsplashUrl(w, h, query) {
+  const q = String(query || "").replace(/\s+/g, ",").replace(/,+/g, ",").replace(/^,|,$/g, "");
+  const safe = q || "business,office";
+  return `https://source.unsplash.com/${w}x${h}/?${safe}`;
+}
+
+function fillImageSlots(out, prefix, count, w, h, queries, fallbackQuery) {
+  const list = Array.isArray(queries) ? queries.filter(Boolean) : [];
+  const fallback = fallbackQuery || "business,office";
+  for (let i = 1; i <= count; i += 1) {
+    const q = list[i - 1] || list[list.length - 1] || fallback;
+    out[`${prefix}${i}`] = unsplashUrl(w, h, q);
+  }
+}
+
+function buildCategoryImageSet({
+  heroQuery,
+  imageQueries,
+  itemQueries,
+  galleryQueries,
+  avatarQueries,
+  fallbackQuery
+}) {
+  const out = {};
+  out.HERO_IMAGE_URL = unsplashUrl(2000, 1200, heroQuery || fallbackQuery);
+
+  fillImageSlots(out, "IMAGE_", 6, 1200, 900, imageQueries, fallbackQuery);
+  fillImageSlots(out, "ITEM_IMAGE_", 12, 1000, 800, itemQueries, fallbackQuery);
+  fillImageSlots(out, "GALLERY_IMAGE_", 12, 900, 1200, galleryQueries, fallbackQuery);
+  fillImageSlots(out, "AVATAR_IMAGE_", 6, 200, 200, avatarQueries, "portrait,person");
+
+  return out;
+}
+
+function pickCategoryImages(categoryRaw = "") {
+  const category = String(categoryRaw || "").toLowerCase();
+  const has = (s) => category.includes(s);
+  const base = toCategoryQuery(categoryRaw) || "business,office";
+
+  if (has("coffee") || has("cafe") || has("café") || has("tea") || has("bakery")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},coffee,cafe`,
+      imageQueries: [`${base},cafe,interior`, "coffee,beans", "map,city", "barista", "latte,art", "bakery,pastry"],
+      itemQueries: ["espresso,coffee", "latte,cafe", "pastry,bakery", "cappuccino", "croissant", "cold,brew", `${base},coffee`],
+      galleryQueries: ["barista", "coffee,cup", "coffee,shop", "latte,art", "bakery,pastry", "brunch,cafe"],
+      avatarQueries: ["portrait,smile", "portrait,person", "portrait,professional"],
+      fallbackQuery: "coffee,cafe"
+    });
+  }
+
+  if (has("pizza") || has("restaurant") || has("food") || has("burger") || has("diner") || has("catering")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},restaurant,food`,
+      imageQueries: ["chef,cooking", "restaurant,interior", "map,city", "plating,gourmet", "kitchen,chef", "table,restaurant"],
+      itemQueries: ["pizza", "pasta", "dessert", "burger", "salad", "steak", `${base},food`],
+      galleryQueries: ["restaurant,table", "chef,cooking", "dessert", "fresh,ingredients", "wine,glass", "food,plating"],
+      avatarQueries: ["portrait,person", "portrait,smile", "portrait,professional"],
+      fallbackQuery: "restaurant,food"
+    });
+  }
+
+  if (has("salon") || has("spa") || has("beauty") || has("barber") || has("tattoo")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},salon,spa`,
+      imageQueries: ["haircut,salon", "skincare,spa", "map,city", "barber,shop", "tattoo,studio", "beauty,products"],
+      itemQueries: ["haircut,salon", "beard,trim", "skincare,spa", "tattoo,artist", "barber,tools", `${base},beauty`],
+      galleryQueries: ["barber,shop", "hair,styling", "tattoo,art", "salon,interior", "spa,relax", "grooming"],
+      avatarQueries: ["portrait,person", "portrait,style", "portrait,professional"],
+      fallbackQuery: "salon,spa"
+    });
+  }
+
+  if (has("medical") || has("clinic") || has("doctor") || has("dent") || has("dental") || has("hospital")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},clinic,doctor`,
+      imageQueries: ["doctor,consultation", "clinic,interior", "map,city", "medical,team", "dental,clinic", "stethoscope,doctor"],
+      itemQueries: ["doctor,clinic", "medical,checkup", "dental,care", "hospital,interior", "health,care", `${base},health`],
+      galleryQueries: ["clinic,interior", "doctor,patient", "medical,team", "dental,tools", "health,care", "reception,clinic"],
+      avatarQueries: ["doctor,portrait", "nurse,portrait", "doctor,portrait,smile"],
+      fallbackQuery: "doctor,clinic"
+    });
+  }
+
+  if (has("gym") || has("fitness") || has("yoga") || has("pilates") || has("crossfit")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},gym,fitness`,
+      imageQueries: ["gym,interior", "workout,training", "map,city", "dumbbell,gym", "personal,trainer", "fitness,class"],
+      itemQueries: ["gym,workout", "dumbbell", "treadmill,gym", "yoga", "pilates", `${base},fitness`],
+      galleryQueries: ["gym,training", "fitness,class", "weights,gym", "cardio,workout", "stretching,yoga", "boxing,training"],
+      avatarQueries: ["portrait,athlete", "portrait,trainer", "portrait,person"],
+      fallbackQuery: "gym,fitness"
+    });
+  }
+
+  if (has("auto") || has("car") || has("garage") || has("mechanic") || has("bike")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},auto,repair`,
+      imageQueries: ["mechanic,car", "garage,service", "map,city", "car,engine", "tools,mechanic", "auto,workshop"],
+      itemQueries: ["car,service", "oil,change", "tire,service", "engine,repair", "diagnostics,car", `${base},auto`],
+      galleryQueries: ["mechanic,workshop", "car,engine", "auto,tools", "garage,interior", "car,repair", "tire,change"],
+      avatarQueries: ["portrait,mechanic", "portrait,person", "portrait,professional"],
+      fallbackQuery: "auto,repair"
+    });
+  }
+
+  if (has("real estate") || has("property") || has("realtor") || has("broker")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},real,estate`,
+      imageQueries: ["luxury,interior", "city,skyline", "map,city", "modern,architecture", "apartment,interior", "house,exterior"],
+      itemQueries: ["house,exterior", "apartment,interior", "villa,exterior", "living,room", "kitchen,interior", `${base},property`],
+      galleryQueries: ["architecture,building", "living,room", "kitchen,interior", "bedroom,interior", "city,skyline", "house,exterior"],
+      avatarQueries: ["portrait,professional", "portrait,person", "portrait,smile"],
+      fallbackQuery: "real,estate"
+    });
+  }
+
+  if (has("law") || has("lawyer") || has("attorney") || has("legal")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},law,office`,
+      imageQueries: ["law,office", "meeting,boardroom", "map,city", "courthouse", "legal,documents", "handshake,business"],
+      itemQueries: ["law,office", "legal,documents", "court,judge", "consultation,meeting", `${base},legal`, "contract,signing"],
+      galleryQueries: ["law,office", "courthouse", "meeting,boardroom", "legal,documents", "scales,justice", "library,law"],
+      avatarQueries: ["portrait,professional", "portrait,person", "portrait,smile"],
+      fallbackQuery: "law,office"
+    });
+  }
+
+  if (has("school") || has("academy") || has("coaching") || has("tutor") || has("training")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},school,campus`,
+      imageQueries: ["classroom,students", "teacher,teaching", "map,city", "books,study", "graduation", "library,school"],
+      itemQueries: ["students,study", "classroom", "teacher", "books", "computer,class", `${base},education`],
+      galleryQueries: ["school,campus", "classroom", "students,study", "graduation", "library,books", "teacher,teaching"],
+      avatarQueries: ["portrait,student", "portrait,teacher", "portrait,person"],
+      fallbackQuery: "education,school"
+    });
+  }
+
+  if (has("event") || has("wedding") || has("planner")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},wedding,event`,
+      imageQueries: ["event,planner", "wedding,decor", "map,city", "flowers,wedding", "table,setting", "wedding,cake"],
+      itemQueries: ["wedding,decor", "event,planner", "flowers,wedding", "table,setting", "wedding,cake", `${base},event`],
+      galleryQueries: ["wedding,table", "wedding,couple", "wedding,cake", "floral,arch", "wedding,invitation", "wedding,night"],
+      avatarQueries: ["portrait,person", "portrait,smile", "portrait,professional"],
+      fallbackQuery: "wedding,event"
+    });
+  }
+
+  if (has("retail") || has("store") || has("shop")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},retail,store`,
+      imageQueries: ["store,interior", "shopping,products", "map,city", "boutique,store", "shelf,products", "checkout,store"],
+      itemQueries: [`${base},product`, "shopping,bag", "product,display", "boutique", "packaging", "store,aisle", "fashion,product", "electronics,product"],
+      galleryQueries: ["store,interior", "product,display", "shopping", "boutique", "checkout", "retail,storefront"],
+      avatarQueries: ["portrait,person", "portrait,smile", "portrait,professional"],
+      fallbackQuery: "retail,store"
+    });
+  }
+
+  if (has("tech") || has("it") || has("software") || has("agency")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},technology`,
+      imageQueries: ["data,center", "developer,workspace", "map,city", "server,rack", "code,screen", "network,hardware"],
+      itemQueries: ["server,rack", "code,screen", "laptop,workspace", "cloud,computing", "network,hardware", `${base},technology`],
+      galleryQueries: ["data,center", "developer,workspace", "server,rack", "code,screen", "team,meeting", "cybersecurity"],
+      avatarQueries: ["portrait,professional", "portrait,person", "portrait,smile"],
+      fallbackQuery: "technology"
+    });
+  }
+
+  if (has("travel") || has("hotel") || has("resort")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},travel`,
+      imageQueries: ["luxury,hotel", "travel,landscape", "map,city", "resort,pool", "beach,resort", "city,travel"],
+      itemQueries: ["beach,resort", "mountains,travel", "city,travel", "luxury,hotel", "suite,hotel", `${base},travel`],
+      galleryQueries: ["travel,landscape", "luxury,hotel", "resort,pool", "beach,resort", "city,skyline", "mountain,view"],
+      avatarQueries: ["portrait,person", "portrait,smile", "portrait,professional"],
+      fallbackQuery: "travel,hotel"
+    });
+  }
+
+  if (has("finance") || has("account") || has("tax") || has("insurance") || has("audit")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},finance`,
+      imageQueries: ["finance,meeting", "accounting,team", "map,city", "office,workspace", "calculator,finance", "charts,analysis"],
+      itemQueries: ["finance,meeting", "accounting", "tax,documents", "office,team", "charts,analysis", `${base},finance`],
+      galleryQueries: ["finance,meeting", "office,team", "charts,analysis", "documents,contract", "handshake,business", "city,office"],
+      avatarQueries: ["portrait,professional", "portrait,person", "portrait,smile"],
+      fallbackQuery: "finance,office"
+    });
+  }
+
+  if (has("home") || has("construction") || has("plumb") || has("electric") || has("clean") || has("repair")) {
+    return buildCategoryImageSet({
+      heroQuery: `${base},home,service`,
+      imageQueries: ["home,interior", "tools,repair", "map,city", "plumber,work", "electrician,work", "cleaning,home"],
+      itemQueries: ["home,repair", "cleaning,service", "tools,repair", "kitchen,interior", "bathroom,repair", `${base},home`],
+      galleryQueries: ["home,interior", "tools,repair", "plumber,work", "electrician,work", "cleaning,home", "renovation,home"],
+      avatarQueries: ["portrait,professional", "portrait,person", "portrait,smile"],
+      fallbackQuery: "home,service"
+    });
+  }
+
+  return buildCategoryImageSet({
+    heroQuery: `${base},business`,
+    imageQueries: [`${base},interior`, "team,work", "map,city"],
+    itemQueries: [`${base},product`, "service,customer", "office,workspace"],
+    galleryQueries: [`${base},storefront`, "workspace,team", "city,street"],
+    avatarQueries: ["portrait,person", "portrait,smile", "portrait,professional"],
+    fallbackQuery: "business,office"
+  });
 }
 
 function inferServices(categoryRaw) {
@@ -129,26 +416,46 @@ function fallbackGeneratedValues(placeholders, businessData) {
   const shop = String(businessData.shop_name || "").trim() || "Your Business";
   const address = String(businessData.address || "").trim();
   const phone = String(businessData.phone || "").trim();
-  const safeCity = city ? ` in ${city}` : "";
 
-  const [s1, s2, s3] = inferServices(category);
+  const cityShort = clampText(city, { maxWords: 4, maxChars: 28 });
+  const categoryShort = clampText(category, { maxWords: 6, maxChars: 40 }) || "business";
+  const shopShort = clampText(shop, { maxWords: 8, maxChars: 48 }) || "Your Business";
+  const safeCity = cityShort ? ` in ${cityShort}` : "";
+
+  const [s1, s2, s3] = inferServices(categoryShort);
 
   const values = {};
   for (const p of placeholders) {
-    if (p === "TAGLINE") values[p] = `Trusted ${category}${safeCity}`.split(" ").slice(0, 10).join(" ");
+    if (p === "TAGLINE") values[p] = clampWords(`Trusted ${categoryShort}${safeCity}`, 10);
     else if (p === "ABOUT_TEXT") {
-      const where = address || (city ? city : "your area");
+      const whereRaw = address || (cityShort ? cityShort : "your area");
+      const where = clampText(whereRaw, { maxWords: 12, maxChars: 80 }) || "your area";
       const call = phone ? ` Call ${phone} to get started.` : " Contact us to get started.";
-      values[p] = `${shop} provides professional ${category} services for customers in ${where}. We focus on quality, clear communication, and great results.${call}`;
+      values[p] = clampText(
+        `${shopShort} provides professional ${categoryShort} services for customers in ${where}. We focus on quality, clear communication, and great results.${call}`,
+        { maxWords: 50, maxChars: 320 }
+      );
     } else if (p === "SERVICE_1") values[p] = s1;
     else if (p === "SERVICE_2") values[p] = s2;
     else if (p === "SERVICE_3") values[p] = s3;
-    else if (p === "META_TITLE") values[p] = `${shop}${safeCity} | ${category}`.slice(0, 60);
+    else if (p === "META_TITLE") values[p] = clampChars(`${shopShort}${safeCity} | ${categoryShort}`, 60);
     else if (p === "META_DESCRIPTION") {
-      const bits = [`${shop}${safeCity}`, category, phone ? `Call ${phone}` : ""].filter(Boolean);
-      values[p] = bits.join(" • ").slice(0, 160);
+      const bits = [`${shopShort}${safeCity}`, categoryShort, phone ? `Call ${phone}` : ""].filter(Boolean);
+      values[p] = clampChars(bits.join(" • "), 160);
     } else if (p === "CTA_TEXT") values[p] = phone ? "Call Now" : "Get a Quote";
-    else if (p.endsWith("_TEXT") && !values[p]) values[p] = `${shop} — ${category}${safeCity}.`;
+    else if (p.endsWith("_TEXT") && !values[p]) values[p] = clampText(`${shopShort} — ${categoryShort}${safeCity}.`, { maxWords: 14, maxChars: 120 });
+  }
+
+  // Final guardrails: prevent fallback text from blowing up templates/UI when Groq fails.
+  for (const [key, val] of Object.entries(values)) {
+    if (val == null) continue;
+    if (key === "TAGLINE") values[key] = clampText(val, { maxWords: 10, maxChars: 80 });
+    else if (key === "ABOUT_TEXT") values[key] = clampText(val, { maxWords: 50, maxChars: 320 });
+    else if (key.startsWith("SERVICE_")) values[key] = clampText(val, { maxWords: 8, maxChars: 56 });
+    else if (key === "CTA_TEXT") values[key] = clampText(val, { maxWords: 4, maxChars: 24 });
+    else if (key === "META_TITLE") values[key] = clampText(val, { maxWords: 12, maxChars: 60 });
+    else if (key === "META_DESCRIPTION") values[key] = clampText(val, { maxWords: 28, maxChars: 160 });
+    else values[key] = clampText(val, { maxWords: 18, maxChars: 180 });
   }
   return values;
 }
@@ -226,6 +533,7 @@ async function fillTemplate(templatePath, businessData, opts = {}) {
   if (remaining.length > 0) {
     try {
       generated = await groqGenerateValues(placeholders, businessData, false);
+      generated = enforceGeneratedLimits(generated);
     } catch (err) {
       logErrorToFile("Groq JSON parse or API error (retrying once)", {
         shop_id: businessData.shop_id,
@@ -233,6 +541,7 @@ async function fillTemplate(templatePath, businessData, opts = {}) {
       });
       try {
         generated = await groqGenerateValues(placeholders, businessData, true);
+        generated = enforceGeneratedLimits(generated);
       } catch (err2) {
         logErrorToFile("Groq failed twice; using fallback generation", {
           shop_id: businessData.shop_id,
@@ -257,6 +566,7 @@ async function fillTemplate(templatePath, businessData, opts = {}) {
     WEBSITE_URL: businessData.website_url || ""
   };
   Object.assign(replacements, extraFields);
+  Object.assign(replacements, pickCategoryImages(businessData.category || ""));
 
   for (const f of textFiles) {
     const text = fs.readFileSync(f, "utf8");

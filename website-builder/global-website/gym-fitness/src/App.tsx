@@ -97,7 +97,7 @@ export default function App() {
             <img 
               alt="Professional Athlete" 
               className="w-full h-full object-cover grayscale brightness-[0.3]" 
-              src="https://picsum.photos/seed/gym-fitness-hero/1920/1080"
+              src="[[HERO_IMAGE_URL]]"
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-transparent"></div>
@@ -220,7 +220,7 @@ export default function App() {
               <img 
                 alt="Gym Interior" 
                 className="grayscale w-full aspect-square object-cover" 
-                src="https://picsum.photos/seed/gym-fitness-interior/1000/1000"
+                src="[[IMAGE_1]]"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute -bottom-8 -right-8 bg-brand-red p-8 md:p-12 text-white hidden sm:block">

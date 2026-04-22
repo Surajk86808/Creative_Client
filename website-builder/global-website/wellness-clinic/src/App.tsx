@@ -146,7 +146,7 @@ export default function App() {
               <img 
                 alt="Medical clinic interior" 
                 className="w-full h-full object-cover" 
-                src="https://picsum.photos/seed/botanical-clinic/800/1000"
+                src="[[HERO_IMAGE_URL]]"
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -250,7 +250,7 @@ export default function App() {
               <img 
                 alt="Laboratory" 
                 className="w-full aspect-square object-cover" 
-                src="https://picsum.photos/seed/botanical-lab/800/800"
+                src="[[IMAGE_1]]"
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -350,19 +350,19 @@ export default function App() {
                 name: "Dr. Robert Chen", 
                 role: "Professor of History", 
                 text: "The Botanical Authority didn't just treat my symptoms; they looked at my entire biology. The results have been life-changing for my chronic inflammation.",
-                img: "https://picsum.photos/seed/patient1/100/100"
+                img: "[[AVATAR_IMAGE_1]]"
               },
               { 
                 name: "Elena Rodriguez", 
                 role: "Professional Athlete", 
                 text: "I was skeptical of 'herbal' medicine, but the clinical rigor here is world-class. My recovery speed after surgery was cut in half.",
-                img: "https://picsum.photos/seed/patient2/100/100"
+                img: "[[AVATAR_IMAGE_2]]"
               },
               { 
                 name: "Sarah Williams", 
                 role: "Retired Architect", 
                 text: "A sanctuary of healing. From the atmosphere to the expertise, everything about this clinic signals precision and deep care.",
-                img: "https://picsum.photos/seed/patient3/100/100"
+                img: "[[AVATAR_IMAGE_3]]"
               }
             ].map((t, idx) => (
               <div key={idx} className="bg-surface-container-lowest p-8 rounded-2xl shadow-sm border-t-[3px] border-tertiary">
@@ -424,7 +424,7 @@ export default function App() {
               <img 
                 alt="Map" 
                 className="w-full h-full object-cover" 
-                src="https://picsum.photos/seed/portland-map/800/400"
+                src="[[IMAGE_2]]"
                 referrerPolicy="no-referrer"
               />
             </div>

@@ -81,7 +81,7 @@ export default function Hero() {
         className="relative w-full max-w-6xl mx-auto mt-8"
       >
         <img 
-          src="https://picsum.photos/seed/interior/1920/1080" 
+          src="[[HERO_IMAGE_URL]]" 
           alt="Minimalist eco-conscious interior" 
           className="w-full h-[400px] md:h-[600px] object-cover rounded-3xl shadow-2xl"
           referrerPolicy="no-referrer"

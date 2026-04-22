@@ -136,7 +136,7 @@ const Hero = () => {
         >
           <div className="rounded-[40px] overflow-hidden shadow-2xl relative aspect-[4/5]">
             <img 
-              src="https://picsum.photos/seed/medical-dental-hero/2070/1400" 
+              src="[[HERO_IMAGE_URL]]" 
               alt="Modern Clinical Studio" 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -163,12 +163,13 @@ const Hero = () => {
               className="absolute bottom-8 -left-4 bg-white p-5 rounded-2xl shadow-xl hidden sm:block"
             >
               <div className="flex -space-x-3 mb-3">
-                {[1, 2, 3].map((i) => (
-                  <img 
-                    key={i}
-                    src={`https://i.pravatar.cc/150?u=${i + 10}`} 
+                {["[[AVATAR_IMAGE_1]]", "[[AVATAR_IMAGE_2]]", "[[AVATAR_IMAGE_3]]"].map((src) => (
+                  <img
+                    key={src}
+                    src={src}
                     className="w-10 h-10 rounded-full border-2 border-white object-cover" 
                     alt="Specialist"
+                    referrerPolicy="no-referrer"
                   />
                 ))}
                 <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center border-2 border-white text-white text-[10px] font-bold">+12</div>
@@ -277,7 +278,7 @@ const About = () => {
         <div className="relative">
           <div className="rounded-[40px] overflow-hidden shadow-2xl">
             <img 
-              src="https://picsum.photos/seed/medical-dental-about/2070/1400" 
+              src="[[IMAGE_1]]" 
               alt="Expert Doctor" 
               className="w-full aspect-square object-cover"
               referrerPolicy="no-referrer"
@@ -411,7 +412,7 @@ const Contact = () => {
         <div className="flex flex-col gap-8">
           <div className="rounded-[32px] overflow-hidden h-[300px] shadow-lg relative group">
             <img 
-              src="https://picsum.photos/seed/medical-dental-clinic/2070/1400" 
+              src="[[IMAGE_2]]" 
               alt="Map Location" 
               className="w-full h-full object-cover grayscale opacity-50 transition-all group-hover:grayscale-0 group-hover:opacity-100"
               referrerPolicy="no-referrer"

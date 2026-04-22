@@ -62,7 +62,7 @@ const Hero = () => {
         <img 
           alt="Dark cinematic barber shop" 
           className="w-full h-full object-cover brightness-[0.25]" 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnx8IWI0ZFRLM1CYvh3NOlJ3SWTuFuUR5pB8Tu20lj4wVDL_2DJRaJA2l93rS14GKJ_zQVFKXbpRHwGB0xpvZ53rvveotOhjG_J7bdA8w3edsm1TA8O77yTgv4mmAePot63DLCOnNqG_vacm2q4JqI-Bm1oLX36C2oDGp91Whqsk-ulNQuI-9jPGkKpVT117dGmlNJrD2_nHKPOapR5-Sbhg1RZm85zN-nv1uL-KVTpA4u_3n-OS-JQ7oUxYLjW8RtFckcn-SLLiba"
+          src="[[HERO_IMAGE_URL]]"
           referrerPolicy="no-referrer"
         />
       </div>
@@ -158,7 +158,7 @@ const About = () => {
         <img 
           alt="Barber working on client" 
           className="w-full aspect-square object-cover grayscale hover:grayscale-0 transition-all duration-700" 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjNE0ZMWEcjXRMYhk6P-63cock8F_2JxUZHbbS_rx8z3-ENtamUuFzZ5kMG9Ub4Q3ts1Y_cTiJUe--W7V-UsaStxOH8fArqd8zmchqdjKwD49sbihCXbiO1ztV9-eC5N62epLyP2cF_bPOfHR0TAx1F6hgaDlhEw9heDIQLLYgH_S9w-nEAsr0LLs5dpQENMGIcyCSE6w2ZgBfBKJrVU5CL9ijrVl3iiZIPOBRB10FIQvV07dBUvhXnTYHfViDoIdXbtaWlvaNS5VO"
+          src="[[IMAGE_1]]"
           referrerPolicy="no-referrer"
         />
       </div>
@@ -207,12 +207,12 @@ const Stats = () => {
 
 const Gallery = () => {
   const images = [
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuCzPXoscCBzEu3t_mhcGZ1q60P5yfCzxgnYaFEf6fgvxjdF0_qIRBbFk4LNIPV6YNlXwWb4hBTIhG5PnD9UgXBErE31cFHV2JwdPiE4B-GmNoRRvE3Mzz66AF5IYTYxQcUcV6Aa8HICLwwS1RK3r4Min4rpOfsIAQx6iULQF-Epyuu9AeufJoznCjUCs73I8CoE4L7iFkv9MuTUiH_AMB_HdDoI2yWyr_hzm_2QHjt9eQosj0-ylzUaN-tXNkL_x24XA3CtSD-aGDML",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuBIuIcKEi--kIjQdnKz70zJrsa_L29ydRWnTUbgNGn-VRntbeqrW0bwHU1Dabhd30m9d_ftbTqf-PiIzTvuddLZXJUGSwY0mIE-7LaC0p5zHPY9y7EnB7zPhUKBxI3lYWiMClGSUukHlzUZpMycxwjMWSqXN-Gtwkl_5vgPni28UrPMDKbq_4PIZvEZCQdY7AaeSQdhEvsxLaSz7VnPZanzXI_QRlsywm__8ltoOVvZU6FAG0T-l_S9VETJbhGcqmTRBPSi2X0Pui_w",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuB7Bnodcvcmm4d2dTUZcg8FkAbdvGTyQpg89UJX15xyzhtHiC6csQlRG3ngFUjPw4OtR3ZuusAI-5Ag4kGaTum1qbDHCs2fwHaId9GKzyaQc4j4l-O9VNmidGqq1aR7Y4208e5_cXFWm6soJi2TcsLLZKGrNbXidm7lbUSobzR1Sel-9Du35-SzTn-p5uHSR0CsK5aCc1IeZPSUbDK5Fwd_zs8YanoiyXKjqhNqIcZnP7dqvqqkudnymw6IOOrDOZg8l65FDS-qCszq",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuATJiC5543i7mxYL-bBKhNeLXRArAamjbDT0hFvKQQhBQLgCG-Vgetln2tBIrdS4xe5a-0KP9cx8DzWEbS6PCVXzC3EBXsqkRtnKzkLgxKQyrb8dqNUa_ZChI1qwXwKc2TZqlttjbDuZ7ov06WanjiUJWNd3ufutHhW12ed8Z_SjsZxZqXXnncNTs3ByUy-1WNiqhRdw5kjNqKFWyhrYp-DIiIMDdvP1EgA99J6FmKpQkc2_eo5V9JEPRUAACgQGpoAtSk5gSu4rFSb",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuCRUlVVVYVKVeh7ehCsZqW_nvMzPfncC2wPaNNmtXGrdXSlqpmjlumjDTTL3fxGv2o165G3xk25g6GtPnQ8WnBllY6FcTskx3hm-jnrxftNTAnsUAvESVUuW5wcyu6aOjzjy7WCkuze__ZHAQhGrADdTkdyj8MFG10q6kh1KDHGJExx4ghU4ZdlBcOXrKPepfVFYxWgwW_jluhGSn0_3VpthdfCPQVFIc8y80qrDSqbioKz4Uw1svhu9A8AbBXTXWNTc0N6KUbaoWyT",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuBqCg95HbpGzX6LZ0Zwf09vt-ez9scsamilHetEM0utBvqOpSvrL0uY1fj52MIplQFFsIgUA5MCtSWgjDVeT3VMxeEeFZUNgIaPeFEmP0hDL-xvPsMeXjbpQdjZqkTNSs8UNAzKSCKZXb_GwpHA6oDipCuTsm6_RL5sdnvEESSU9Bq4gvQJNd9tW1hUUgCKmv3qWfx-gt-RrTFtIBqpYJvl8JzQKri3BCdEUWPacE026-odDghmH-MpJXYSOU72VrylBCNUxHtGzXW1"
+    "[[GALLERY_IMAGE_1]]",
+    "[[GALLERY_IMAGE_2]]",
+    "[[GALLERY_IMAGE_3]]",
+    "[[GALLERY_IMAGE_4]]",
+    "[[GALLERY_IMAGE_5]]",
+    "[[GALLERY_IMAGE_6]]"
   ];
 
   return (
