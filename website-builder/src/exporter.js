@@ -2,18 +2,33 @@ const ExcelJS = require("exceljs");
 const fs = require("fs");
 const path = require("path");
 const { config } = require("./config");
-const { getProcessed } = require("./db");
 const { ensureDir } = require("./utils");
-const { normalizeReviewStatus, readLeadMetaForSite } = require("./review");
+
+const DISPLAY_COLUMNS = [
+  { header: "name", key: "name", width: 32 },
+  { header: "category", key: "category", width: 20 },
+  { header: "city", key: "city", width: 18 },
+  { header: "country", key: "country", width: 18 },
+  { header: "phone", key: "phone", width: 20 },
+  { header: "email", key: "email", width: 30 },
+  { header: "website", key: "website", width: 34 },
+  { header: "score", key: "score", width: 12 },
+  { header: "build_status", key: "build_status", width: 16 },
+  { header: "website_url", key: "website_url", width: 34 },
+  { header: "review_status", key: "review_status", width: 16 },
+  { header: "whatsapp", key: "whatsapp", width: 14 },
+  { header: "email_status", key: "email_status", width: 24 }
+];
+const INTERNAL_COLUMNS = [
+  { header: "shop_id", key: "shop_id", width: 16 }
+];
+const BASE_HEADERS = [...DISPLAY_COLUMNS, ...INTERNAL_COLUMNS].map((column) => column.header);
+const STATIC_HEADERS = new Set(["name", "category", "city", "country", "phone", "email", "website", "score", "shop_id"]);
+const PRESERVED_HEADERS = new Set(["build_status", "website_url", "review_status", "whatsapp", "email_status"]);
 
 function safeText(value) {
   if (value === null || value === undefined) return "";
   return String(value);
-}
-
-function joinLinks(items) {
-  if (!Array.isArray(items)) return "";
-  return items.map((v) => String(v || "").trim()).filter(Boolean).join(", ");
 }
 
 function resolveLeadEmail(lead) {
@@ -40,70 +55,147 @@ function reportPathForGroupKey(key) {
   return path.join(config.OUTPUT_DIR, country, city, category, "leads.xlsx");
 }
 
-function reviewMetaForLead(lead) {
-  const country = safeText(lead && (lead._country || lead.country));
-  const city = safeText(lead && (lead._city || lead.city));
-  const category = safeText(lead && (lead._category || lead.category));
-  const shopId = safeText(lead && lead.shop_id);
-  if (!country || !city || !category || !shopId) return null;
-  const siteDir = path.join(config.OUTPUT_DIR, country, city, category, shopId);
-  return readLeadMetaForSite(siteDir);
+function resolveLeadWebsite(lead) {
+  return safeText(lead && (lead.website || lead.website_url || lead.source_website));
+}
+
+function resolveLeadScore(lead) {
+  if (!lead || typeof lead !== "object") return "";
+  return safeText(lead.score ?? lead.lead_quality_score ?? "");
+}
+
+function normalizeHeader(value) {
+  return safeText(value).trim().toLowerCase();
+}
+
+function extractHeaders(sheet) {
+  const headers = [];
+  for (let col = 1; col <= sheet.columnCount; col += 1) {
+    const header = safeText(sheet.getRow(1).getCell(col).value).trim();
+    if (!header) continue;
+    headers.push(header);
+  }
+  return headers;
+}
+
+async function readExistingWorkbook(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return { headers: [], rowsByShopId: new Map(), orderedShopIds: [] };
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const sheet = workbook.worksheets[0];
+  if (!sheet) {
+    return { headers: [], rowsByShopId: new Map(), orderedShopIds: [] };
+  }
+
+  const headers = extractHeaders(sheet);
+  const headerIndex = new Map(headers.map((header, index) => [normalizeHeader(header), index + 1]));
+  const shopIdCol = headerIndex.get("shop_id");
+  const rowsByShopId = new Map();
+  const orderedShopIds = [];
+
+  for (let rowIndex = 2; rowIndex <= sheet.rowCount; rowIndex += 1) {
+    const row = sheet.getRow(rowIndex);
+    const rowData = {};
+    for (const header of headers) {
+      const colIndex = headerIndex.get(normalizeHeader(header));
+      rowData[header] = colIndex ? safeText(row.getCell(colIndex).value) : "";
+    }
+
+    const shopId = shopIdCol ? safeText(row.getCell(shopIdCol).value).trim() : "";
+    if (!shopId) continue;
+    rowData.shop_id = shopId;
+    rowsByShopId.set(shopId, rowData);
+    orderedShopIds.push(shopId);
+  }
+
+  return { headers, rowsByShopId, orderedShopIds };
+}
+
+function columnConfigForHeader(header) {
+  const normalized = normalizeHeader(header);
+  const configured = [...DISPLAY_COLUMNS, ...INTERNAL_COLUMNS].find(
+    (column) => normalizeHeader(column.header) === normalized
+  );
+  if (configured) return configured;
+  return { header, key: header, width: 24 };
+}
+
+function orderedHeaders(existingHeaders) {
+  const baseHeaderKeys = new Set(BASE_HEADERS.map((header) => normalizeHeader(header)));
+  const extras = existingHeaders.filter((header) => !baseHeaderKeys.has(normalizeHeader(header)));
+  return [...BASE_HEADERS, ...extras];
+}
+
+function initialLeadRow(lead) {
+  return {
+    name: safeText(lead.shop_name || lead.name),
+    category: safeText(lead._category || lead.category || ""),
+    city: safeText(lead._city || lead.city || ""),
+    country: safeText(lead._country || lead.country || ""),
+    phone: safeText(lead.phone),
+    email: resolveLeadEmail(lead),
+    website: resolveLeadWebsite(lead),
+    score: resolveLeadScore(lead),
+    build_status: "built",
+    website_url: "",
+    review_status: "",
+    whatsapp: "",
+    email_status: "",
+    shop_id: safeText(lead.shop_id)
+  };
+}
+
+function mergeRow(existingRow, nextRow, headers) {
+  const merged = {};
+
+  for (const header of headers) {
+    if (STATIC_HEADERS.has(header)) {
+      merged[header] = nextRow[header] || existingRow[header] || "";
+      continue;
+    }
+    if (PRESERVED_HEADERS.has(header)) {
+      merged[header] = existingRow[header] ?? nextRow[header] ?? "";
+      continue;
+    }
+    merged[header] = existingRow[header] ?? nextRow[header] ?? "";
+  }
+
+  merged.shop_id = nextRow.shop_id || existingRow.shop_id || "";
+  return merged;
 }
 
 async function writeReportXlsx(filePath, leads) {
+  const { headers: existingHeaders, rowsByShopId, orderedShopIds } = await readExistingWorkbook(filePath);
+  const headers = orderedHeaders(existingHeaders);
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("leads");
 
-  sheet.columns = [
-    { header: "shop_id", key: "shop_id", width: 16 },
-    { header: "name", key: "name", width: 32 },
-    { header: "phone", key: "phone", width: 18 },
-    { header: "email", key: "email", width: 28 },
-    { header: "source_website", key: "source_website", width: 32 },
-    { header: "generated_website", key: "generated_website", width: 32 },
-    { header: "instagram", key: "instagram", width: 28 },
-    { header: "facebook", key: "facebook", width: 28 },
-    { header: "linkedin", key: "linkedin", width: 28 },
-    { header: "twitter", key: "twitter", width: 28 },
-    { header: "social_media_links", key: "social_media_links", width: 50 },
-    { header: "google_maps_url", key: "google_maps_url", width: 40 },
-    { header: "country", key: "country", width: 16 },
-    { header: "city", key: "city", width: 16 },
-    { header: "category", key: "category", width: 18 },
-    { header: "build_status", key: "build_status", width: 12 },
-    { header: "review_status", key: "review_status", width: 14 },
-    { header: "review_notes", key: "review_notes", width: 28 },
-    { header: "preview_path", key: "preview_path", width: 36 },
-    { header: "template_used", key: "template_used", width: 18 },
-    { header: "deployed_at", key: "deployed_at", width: 22 }
-  ];
+  sheet.columns = headers.map((header) => {
+    const config = columnConfigForHeader(header);
+    return {
+      header,
+      key: header,
+      width: config.width
+    };
+  });
 
+  const usedShopIds = new Set();
   for (const lead of leads) {
-    const processed = getProcessed(lead.shop_id);
-    const reviewMeta = reviewMetaForLead(lead);
-    sheet.addRow({
-      shop_id: safeText(lead.shop_id),
-      name: safeText(lead.shop_name),
-      phone: safeText(lead.phone),
-      email: resolveLeadEmail(lead),
-      source_website: safeText(lead.website_url),
-      generated_website: safeText(processed && processed.vercel_url ? processed.vercel_url : ""),
-      instagram: safeText(lead.instagram),
-      facebook: safeText(lead.facebook),
-      linkedin: safeText(lead.linkedin),
-      twitter: safeText(lead.twitter),
-      social_media_links: joinLinks(lead.social_media_links),
-      google_maps_url: safeText(lead.google_maps_url),
-      country: safeText(lead._country || lead.country || ""),
-      city: safeText(lead._city || lead.city || ""),
-      category: safeText(lead._category || lead.category || ""),
-      build_status: safeText(processed && processed.status ? processed.status : ""),
-      review_status: normalizeReviewStatus(reviewMeta && reviewMeta.review_status),
-      review_notes: safeText(reviewMeta && reviewMeta.review_notes),
-      preview_path: safeText(reviewMeta && reviewMeta.preview_path),
-      template_used: safeText(processed && processed.template_used ? processed.template_used : ""),
-      deployed_at: safeText(processed && processed.deployed_at ? processed.deployed_at : "")
-    });
+    const nextRow = initialLeadRow(lead);
+    if (!nextRow.shop_id) continue;
+    const existingRow = rowsByShopId.get(nextRow.shop_id) || {};
+    sheet.addRow(mergeRow(existingRow, nextRow, headers));
+    usedShopIds.add(nextRow.shop_id);
+  }
+
+  for (const shopId of orderedShopIds) {
+    if (usedShopIds.has(shopId)) continue;
+    const existingRow = rowsByShopId.get(shopId);
+    if (!existingRow) continue;
+    sheet.addRow(mergeRow(existingRow, { shop_id: shopId }, headers));
   }
 
   ensureDir(path.dirname(filePath));

@@ -15,5 +15,11 @@
   "rating": 4.4,
   "reviews_count": 3116,
   "website_url": "https://www.radissonhotels.com/en-us/hotels/radisson-bengaluru-city-center?cid=a:se+b:gmb+c:apac+i:local+e:rad+d:ind+h:INKABENCTR",
-  "generated_at": "2026-04-21T21:07:44.614Z"
+  "generated_at": "2026-04-21T21:07:44.614Z",
+  "status": "rejected",
+  "reason": "contains unreplaced template tokens",
+  "local_file_url": "file:///C:/Users/Laptop/OneDrive/Desktop/Creative-client-/output/india/bengaluru/hotel/SHOP_5002607E3C/index.html",
+  "review_status": "rejected",
+  "review_notes": "contains unreplaced template tokens",
+  "review_updated_at": "2026-04-23T00:21:15Z"
 }

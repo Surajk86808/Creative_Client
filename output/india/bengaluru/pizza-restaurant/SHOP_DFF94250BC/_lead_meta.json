@@ -15,5 +15,11 @@
   "rating": 5,
   "reviews_count": 5,
   "website_url": "https://whatsapp.com/channel/0029VbBm3Zr8PgsN3QMFse1i",
-  "generated_at": "2026-04-21T21:07:44.687Z"
+  "generated_at": "2026-04-21T21:07:44.687Z",
+  "status": "rejected",
+  "reason": "contains unreplaced template tokens",
+  "local_file_url": "file:///C:/Users/Laptop/OneDrive/Desktop/Creative-client-/output/india/bengaluru/pizza-restaurant/SHOP_DFF94250BC/index.html",
+  "review_status": "rejected",
+  "review_notes": "contains unreplaced template tokens",
+  "review_updated_at": "2026-04-23T00:21:15Z"
 }

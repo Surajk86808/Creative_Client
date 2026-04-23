@@ -1,0 +1,35 @@
+graph TD
+  ROOT["Creative-client-"] --> RP["run_pipeline.py"]
+  ROOT --> LF["lead_finder/"]
+  ROOT --> WB["website-builder/"]
+  ROOT --> WA["whatsappcheck/"]
+  ROOT --> ES["email_sender/"]
+  ROOT --> AN["analytics/"]
+  ROOT --> OUT["output/"]
+  ROOT --> SCR["scripts/"]
+
+  RP --> LFCLI["lead_finder/run.py"]
+  RP --> WBCLI["website-builder CLI"]
+  RP --> WACLI["whatsappcheck/run.py"]
+  RP --> ESCLI["email_sender/agent.py"]
+
+  LF --> CAT["categories_indian.txt / categories.txt"]
+  LF --> LFMOD["scraper.py, qualify.py, database.py"]
+  LFCLI --> DATA["public/data/{country}/{city}/ exports"]
+  LFCLI --> ANTR["analytics/tracker.js"]
+
+  ANTR --> ANIDX["analytics/index.json"]
+
+  WB --> WBCMD["src/commands/*"]
+  WB --> TPL["global-website/* templates"]
+  WBCLI --> OUTSITE["output/... site folders + leads.xlsx"]
+  WBCLI --> ANTR
+
+  WACLI --> OUTSITE
+  WACLI --> WAUPD["excel_updater.py"]
+
+  ESCLI --> OUTSITE
+  ESCLI --> JSONFB["JSON fallback from public/data"]
+  ESCLI --> ESTAT["public/email_status/*"]
+
+  SCR --> NODE["setup-node.cmd / npm.cmd / npx.cmd"]

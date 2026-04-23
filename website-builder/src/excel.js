@@ -12,6 +12,7 @@ function normalizeRow(r) {
   const placeId = String(r.place_id || r.placeId || "").trim();
   const mapsUrl = String(r.google_maps_url || r.googleMapsUrl || "").trim();
   const website = String(r.website || "").trim();
+  const buildStatus = String(r.build_status || r.buildStatus || r.status || "").trim().toLowerCase();
 
   return {
     shop_id: String(r.shop_id || r.shopId || "").trim() || (placeId ? stableIdFromSeed(placeId) : stableIdFromSeed(mapsUrl || website || JSON.stringify(r))),
@@ -22,7 +23,7 @@ function normalizeRow(r) {
     email: String(r.email || r.primary_email || r.primaryEmail || "").trim(),
     city: String(r.city || "").trim(),
     website_url: String(r.website_url || r.websiteUrl || r.website || "").trim(),
-    status: String(r.status || "").trim().toLowerCase()
+    status: buildStatus
   };
 }
 
@@ -159,11 +160,18 @@ async function updateRow(leadRow, url, status) {
       colByHeader.set("website_url", websiteUrlCol);
     }
 
-    let statusCol = colByHeader.get("status");
+    let statusCol = colByHeader.get("build_status") || colByHeader.get("buildstatus");
+    const legacyStatusCol = colByHeader.get("status");
+    if (!statusCol && legacyStatusCol) {
+      statusCol = legacyStatusCol;
+      headerRow.getCell(statusCol).value = "build_status";
+      colByHeader.delete("status");
+      colByHeader.set("build_status", statusCol);
+    }
     if (!statusCol) {
       statusCol = Math.max(sheet.columnCount, websiteUrlCol) + 1;
-      headerRow.getCell(statusCol).value = "status";
-      colByHeader.set("status", statusCol);
+      headerRow.getCell(statusCol).value = "build_status";
+      colByHeader.set("build_status", statusCol);
     }
 
     let found = false;

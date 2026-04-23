@@ -22,7 +22,7 @@ program
 
 program
   .command("pipeline")
-  .description("Run lead_finder then build websites from JSON leads")
+  .description("Delegate pipeline execution to repo-root run_pipeline.py")
   .requiredOption("--city <city>", "City to scrape (lead_finder --city)")
   .option("--categories <csv>", "Comma-separated categories (lead_finder --categories)")
   .option("--categories-file <path>", "Categories file path (lead_finder --categories-file)")
@@ -36,7 +36,7 @@ program
   .option("--preview", "Serve OUTPUT_DIR locally on port 3000 while running")
   .action((opts) => pipelineCommand(opts).catch((err) => {
     console.error(err && err.message ? err.message : err);
-    process.exitCode = 1;
+    process.exitCode = Number.isInteger(err && err.exitCode) ? err.exitCode : 1;
   }));
 
 program.command("status").action(() => statusCommand());

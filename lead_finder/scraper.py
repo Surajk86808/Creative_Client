@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import re
 import subprocess
@@ -52,6 +53,22 @@ ENRICH_MAX_WORKERS = 4
 ENRICH_SHORTLIST_DEFAULT = 40
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ANALYTICS_TRACKER_PATH = REPO_ROOT / "analytics" / "tracker.js"
+PIPELINE_LOG_STRUCTURED = os.getenv("PIPELINE_LOG_FORMAT", "").strip().lower() == "structured"
+
+
+def _emit_pipeline_event(entity: str, label: str, status: str, detail: str = "") -> bool:
+    if not PIPELINE_LOG_STRUCTURED:
+        return False
+    payload = {
+        "stage": "scrape",
+        "entity": entity,
+        "label": label,
+        "status": status,
+    }
+    if detail:
+        payload["detail"] = detail
+    print(f"PIPELINE_EVENT: {json.dumps(payload, ensure_ascii=False)}", flush=True)
+    return True
 
 
 def _sleep_random(low: float, high: float) -> None:
@@ -529,9 +546,10 @@ def _enrich_rows(rows: list[dict[str, Any]], max_results: int | None) -> None:
     if not shortlist:
         return
 
-    print(
-        f"[enrich] concurrent website/contact enrichment for {len(shortlist)} shortlisted lead(s)"
-    )
+    if not PIPELINE_LOG_STRUCTURED:
+        print(
+            f"[enrich] concurrent website/contact enrichment for {len(shortlist)} shortlisted lead(s)"
+        )
     with ThreadPoolExecutor(max_workers=ENRICH_MAX_WORKERS) as executor:
         futures = {executor.submit(_enrich_row_contacts, row): row for row in shortlist}
         for future in as_completed(futures):
@@ -576,7 +594,9 @@ def _scrape_category(
     """Scrape one category in one city using batch processing."""
     query = f"{category} in {city}"
     search_url = f"https://www.google.com/maps/search/{quote_plus(query)}"
-    print(f"[category] {query}")
+    category_started_at = time.perf_counter()
+    if not _emit_pipeline_event("category", category, "START"):
+        print(f"[category] {query}")
 
     page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
     _sleep_random(3, 5)
@@ -594,7 +614,8 @@ def _scrape_category(
     total_cards = cards.count()
     if max_results is not None:
         total_cards = min(total_cards, max_results)
-    print(f"[category] loaded cards: {total_cards}")
+    if not PIPELINE_LOG_STRUCTURED:
+        print(f"[category] loaded cards: {total_cards}")
 
     results: list[dict[str, Any]] = []
     total_scraped = 0
@@ -609,7 +630,15 @@ def _scrape_category(
             break
         batch_no += 1
         end = min(start + BATCH_SIZE, total_cards)
-        print(f"[progress] category={category} batch={batch_no} cards={start + 1}-{end}")
+        if PIPELINE_LOG_STRUCTURED:
+            _emit_pipeline_event(
+                "category",
+                category,
+                "PROGRESS",
+                f"batch {batch_no}, cards {start + 1}-{end}/{total_cards}, leads {len(results)}",
+            )
+        else:
+            print(f"[progress] category={category} batch={batch_no} cards={start + 1}-{end}")
 
         for idx in range(start, end):
             if max_results is not None and len(results) >= max_results:
@@ -642,10 +671,11 @@ def _scrape_category(
                 results.append(row)
                 progress_rows.append(row)
                 total_scraped += 1
-                print(
-                    f"[lead] {total_scraped:04d} name={row['name'][:45]} "
-                    f"rating={row.get('rating') or '?'} web={'yes' if row.get('website') else 'no'}"
-                )
+                if not PIPELINE_LOG_STRUCTURED:
+                    print(
+                        f"[lead] {total_scraped:04d} name={row['name'][:45]} "
+                        f"rating={row.get('rating') or '?'} web={'yes' if row.get('website') else 'no'}"
+                    )
                 if total_scraped % BATCH_SIZE == 0:
                     _save_progress(progress_path, progress_rows)
             except PWTimeout:
@@ -661,24 +691,28 @@ def _scrape_category(
         _save_progress(progress_path, progress_rows)
         # Save partial category data so interrupted runs still preserve progress.
         _save_category_rows(city=city, category=category, rows=results)
-        print(
-            f"[batch-summary] category={category} batch={batch_no} "
-            f"new={len(results)} skipped_already_scraped={skipped_already_scraped} "
-            f"skipped_no_name={skipped_no_name} skipped_timeout={skipped_timeout} "
-            f"skipped_error={skipped_error}"
-        )
+        if not PIPELINE_LOG_STRUCTURED:
+            print(
+                f"[batch-summary] category={category} batch={batch_no} "
+                f"new={len(results)} skipped_already_scraped={skipped_already_scraped} "
+                f"skipped_no_name={skipped_no_name} skipped_timeout={skipped_timeout} "
+                f"skipped_error={skipped_error}"
+            )
         should_continue = end < total_cards and (
             max_results is None or len(results) < max_results
         )
         if should_continue:
             sleep_for = random.uniform(BATCH_SLEEP_MIN, BATCH_SLEEP_MAX)
-            print(f"[pause] batch complete -> sleeping {sleep_for:.1f}s")
+            if not PIPELINE_LOG_STRUCTURED:
+                print(f"[pause] batch complete -> sleeping {sleep_for:.1f}s")
             time.sleep(sleep_for)
 
     _enrich_rows(results, max_results)
     _save_progress(progress_path, progress_rows)
     _save_category_rows(city=city, category=category, rows=results)
-    print(f"[category] done: {category} scraped={len(results)}")
+    elapsed = time.perf_counter() - category_started_at
+    if not _emit_pipeline_event("category", category, "SUCCESS", f"{len(results)} leads, {elapsed:.1f}s"):
+        print(f"[category] done: {category} scraped={len(results)}")
     return results
 
 
@@ -737,12 +771,16 @@ def scrape_city(
                 all_results.extend(rows)
                 out_path = _save_category_rows(city=city, category=category, rows=rows)
                 _mark_scraped_analytics(out_path=out_path, lead_count=len(rows))
-                print(f"[saved] category output -> {out_path.resolve()}")
+                if not PIPELINE_LOG_STRUCTURED:
+                    print(f"[saved] category output -> {out_path.resolve()}")
                 category_sleep = random.uniform(CATEGORY_SLEEP_MIN, CATEGORY_SLEEP_MAX)
-                print(f"[pause] category complete -> sleeping {category_sleep:.1f}s")
+                if not PIPELINE_LOG_STRUCTURED:
+                    print(f"[pause] category complete -> sleeping {category_sleep:.1f}s")
                 time.sleep(category_sleep)
             except Exception as exc:
-                print(f"[warn] category failed ({category}): {exc}")
+                _emit_pipeline_event("category", category, "FAIL", str(exc))
+                if not PIPELINE_LOG_STRUCTURED:
+                    print(f"[warn] category failed ({category}): {exc}")
                 continue
 
         context.close()
@@ -751,7 +789,8 @@ def scrape_city(
     for row in all_results:
         key = row.get("place_id") or f"{row.get('name','').lower()}|{row.get('phone','')}"
         unique[key] = row
-    print(f"[summary] city={city} unique_scraped={len(unique)}")
+    if not PIPELINE_LOG_STRUCTURED:
+        print(f"[summary] city={city} unique_scraped={len(unique)}")
     return list(unique.values())
 
 
@@ -788,7 +827,9 @@ def _cli_main() -> None:
     out_path = Path(args.out) if args.out else _city_default_out_path(args.city)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"[saved] {out_path} rows={len(rows)}")
+    if not PIPELINE_LOG_STRUCTURED:
+        print(f"[saved] {out_path} rows={len(rows)}")
+    print(f"PIPELINE_STAT: leads_scraped={len(rows)}")
 
 
 if __name__ == "__main__":

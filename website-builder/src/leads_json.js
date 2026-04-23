@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const LEAD_FINDER_DATA = path.resolve(__dirname, "../../lead_finder/public/data");
+const CATEGORY_LEADS_FILENAME = "leads.json";
 
 function slugify(value) {
   return String(value || "")
@@ -21,6 +22,46 @@ function findAllJsonFiles(dir) {
     else if (entry.isFile() && entry.name.endsWith(".json")) results.push(full);
   }
   return results;
+}
+
+function preferredCategoryJsonFiles(rootDir) {
+  const grouped = new Map();
+  for (const filePath of findAllJsonFiles(rootDir)) {
+    const meta = parseMeta(filePath);
+    if (!meta) continue;
+    const key = `${meta.country}/${meta.city}/${meta.category}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(filePath);
+  }
+
+  const selected = [];
+  for (const files of grouped.values()) {
+    const preferred = files.find((filePath) => path.basename(filePath).toLowerCase() === "leads.json");
+    if (preferred) {
+      selected.push(preferred);
+      continue;
+    }
+    const legacy = files.find((filePath) => {
+      const category = path.basename(path.dirname(filePath));
+      return path.basename(filePath).toLowerCase() === `${category}.json`;
+    });
+    if (legacy) {
+      selected.push(legacy);
+      continue;
+    }
+    selected.push(files[0]);
+  }
+  return selected;
+}
+
+function leadsJsonPath(country, city, category) {
+  return path.join(
+    LEAD_FINDER_DATA,
+    String(country || ""),
+    String(city || ""),
+    String(category || ""),
+    CATEGORY_LEADS_FILENAME
+  );
 }
 
 function parseMeta(filePath) {
@@ -47,6 +88,7 @@ function normalizeJsonLead(raw, meta, filePath) {
   const socialLinks = Array.isArray(raw.social_media_links) ? raw.social_media_links : [];
   const emails = Array.isArray(raw.emails) ? raw.emails.map((value) => String(value || "").trim()).filter(Boolean) : [];
   const primaryEmail = raw.email || raw.primary_email || emails[0] || "";
+  const qualified = typeof raw.qualified === "boolean" ? raw.qualified : true;
   return {
     shop_id,
     shop_name: raw.name || raw.shop_name || "",
@@ -68,6 +110,8 @@ function normalizeJsonLead(raw, meta, filePath) {
     place_id: raw.place_id || "",
     rating: raw.rating || "",
     reviews_count: raw.reviews_count || raw.review_count || raw.reviews || "",
+    score: raw.score ?? raw.lead_quality_score ?? "",
+    qualified,
     status: raw.status || "",
     _sourceFile: filePath,
     _country: meta?.country || "",
@@ -124,7 +168,7 @@ function directJsonFallback() {
   );
 
   const leads = [];
-  for (const filePath of findAllJsonFiles(LEAD_FINDER_DATA)) {
+  for (const filePath of preferredCategoryJsonFiles(LEAD_FINDER_DATA)) {
     const meta = parseMeta(filePath);
     if (!meta) continue;
     if (countryFilter && slugify(meta.country) !== countryFilter) continue;
@@ -132,7 +176,7 @@ function directJsonFallback() {
     if (allowedCategories.size && !allowedCategories.has(slugify(meta.category))) continue;
     leads.push(...readJsonLeads(filePath));
   }
-  return dedupeLeads(leads);
+  return dedupeLeads(leads.filter((lead) => lead.qualified !== false));
 }
 
 function readReadyLeads() {
@@ -155,18 +199,22 @@ function readReadyLeads() {
 
   const leads = [];
   for (const entry of ready) {
-    const absFile = path.resolve(__dirname, "../../", entry.leads_file);
+    const absFile = leadsJsonPath(entry.country, entry.city, entry.category);
     if (!fs.existsSync(absFile)) continue;
     leads.push(...readJsonLeads(absFile));
   }
-  if (leads.length > 0) return dedupeLeads(leads);
-  return directJsonFallback();
+  return dedupeLeads(leads.filter((lead) => lead.qualified !== false));
 }
 
 function readLeadsForPath(country, city, category) {
-  const filePath = path.join(LEAD_FINDER_DATA, country, city, category, `${category}.json`);
-  if (!fs.existsSync(filePath)) return [];
-  return readJsonLeads(filePath);
+  const dirPath = path.join(LEAD_FINDER_DATA, country, city, category);
+  const preferredPath = path.join(dirPath, CATEGORY_LEADS_FILENAME);
+  if (fs.existsSync(preferredPath)) {
+    return readJsonLeads(preferredPath).filter((lead) => lead.qualified !== false);
+  }
+  const legacyPath = path.join(dirPath, `${category}.json`);
+  if (!fs.existsSync(legacyPath)) return [];
+  return readJsonLeads(legacyPath);
 }
 
 module.exports = {

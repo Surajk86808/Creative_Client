@@ -15,5 +15,11 @@
   "rating": 4.8,
   "reviews_count": 432,
   "website_url": "https://clinikk.com/clinics-bangalore/health-hub-kaggadasapura",
-  "generated_at": "2026-04-21T21:07:44.654Z"
+  "generated_at": "2026-04-21T21:07:44.654Z",
+  "status": "rejected",
+  "reason": "contains unreplaced template tokens",
+  "local_file_url": "file:///C:/Users/Laptop/OneDrive/Desktop/Creative-client-/output/india/bengaluru/medical-clinic/SHOP_713C2991AC/index.html",
+  "review_status": "rejected",
+  "review_notes": "contains unreplaced template tokens",
+  "review_updated_at": "2026-04-23T00:21:15Z"
 }

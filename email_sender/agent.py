@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import os
@@ -16,6 +17,7 @@ from pathlib import Path
 from pathlib import Path as _Path
 from typing import Any
 
+import openpyxl
 import requests
 from dotenv import load_dotenv
 
@@ -74,6 +76,10 @@ MAX_FAILED_ATTEMPTS_PER_LEAD = int(os.getenv("MAX_FAILED_ATTEMPTS_PER_LEAD", "3"
 FAILED_RETRY_COOLDOWN_HOURS = int(os.getenv("FAILED_RETRY_COOLDOWN_HOURS", "24"))
 _groq_state: dict[str, float] = {"last_call_ts": 0.0}
 
+# Cross-folder dependencies:
+# - lead_finder/category_bucket.json maps business categories to email buckets/scenarios.
+# - lead_finder/bucket_email_template.json stores the bucket/scenario email templates.
+# This sender lives in email_sender/, but it depends on those shared lead_finder files.
 CATEGORY_BUCKET_PATH = REPO_ROOT / "lead_finder" / "category_bucket.json"
 BUCKET_TEMPLATE_PATH = REPO_ROOT / "lead_finder" / "bucket_email_template.json"
 
@@ -86,6 +92,22 @@ EMAIL_REGEX = re.compile(
     r"@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
     r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
 )
+PIPELINE_LOG_STRUCTURED = os.getenv("PIPELINE_LOG_FORMAT", "").strip().lower() == "structured"
+
+
+def _emit_pipeline_event(entity: str, label: str, status: str, detail: str = "") -> bool:
+    if not PIPELINE_LOG_STRUCTURED:
+        return False
+    payload = {
+        "stage": "email",
+        "entity": entity,
+        "label": label,
+        "status": status,
+    }
+    if detail:
+        payload["detail"] = detail
+    print(f"PIPELINE_EVENT: {json.dumps(payload, ensure_ascii=False)}", flush=True)
+    return True
 
 
 def _sanitize_city_name(city_name: str) -> str:
@@ -113,6 +135,42 @@ def _candidate_public_data_roots() -> list[Path]:
 
 def _email_status_root() -> Path:
     return EMAIL_PUBLIC_DIR / "email_status"
+
+
+def _ensure_template_dependencies_exist() -> None:
+    missing = [path for path in (CATEGORY_BUCKET_PATH, BUCKET_TEMPLATE_PATH) if not path.exists()]
+    if not missing:
+        return
+    missing_paths = ", ".join(str(path) for path in missing)
+    raise SystemExit(
+        "Missing required shared email template file(s): "
+        f"{missing_paths}. These files live under lead_finder/ and must exist "
+        "before running email_sender/agent.py."
+    )
+
+
+def _count_approved_review_rows(output_root: Path) -> int:
+    approved_rows = 0
+    for file_path in sorted(output_root.rglob("leads.xlsx")):
+        try:
+            workbook = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+            worksheet = workbook.active
+            headers = {
+                str(worksheet.cell(1, column).value or "").strip().lower(): column
+                for column in range(1, worksheet.max_column + 1)
+            }
+            review_col = headers.get("review_status")
+            if review_col is None:
+                workbook.close()
+                continue
+            for row_idx in range(2, worksheet.max_row + 1):
+                value = str(worksheet.cell(row_idx, review_col).value or "").strip().lower()
+                if value == "good":
+                    approved_rows += 1
+            workbook.close()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Failed to inspect review status in %s: %s", file_path, exc)
+    return approved_rows
 
 
 def _is_valid_email(email: str) -> bool:
@@ -191,6 +249,21 @@ def _load_suppression_list(path: Path) -> set[str]:
 
 def _email_domain(email: str) -> str:
     return email.rsplit("@", 1)[1].strip().lower() if "@" in email else ""
+
+
+def _is_suppressed_recipient(email: str, suppression_list: set[str]) -> tuple[bool, str]:
+    domain = _email_domain(email)
+    candidates = [email]
+    if domain:
+        candidates.extend([domain, f"@{domain}"])
+    for candidate in candidates:
+        if candidate in suppression_list:
+            if candidate == email:
+                return True, "recipient in suppression list"
+            return True, f"domain {domain} in suppression list"
+    if domain and domain in BLOCKED_EMAIL_DOMAINS:
+        return True, f"domain {domain} blocked"
+    return False, ""
 
 
 def _should_skip_due_to_failures(existing_status: dict[str, Any]) -> tuple[bool, str]:
@@ -294,6 +367,159 @@ def load_leads_auto(
             "for JSON fallback. Run website-builder first."
         )
     return load_leads(city_slug)
+
+
+def _slugify_optional(value: str) -> str:
+    text = re.sub(r"[^a-z0-9]+", "-", str(value or "").strip().lower()).strip("-")
+    return text
+
+
+def _excel_header_map(ws: Any) -> dict[str, int]:
+    result: dict[str, int] = {}
+    for col in range(1, ws.max_column + 1):
+        header = str(ws.cell(1, col).value or "").strip().lower()
+        if header:
+            result[header] = col
+    return result
+
+
+def _excel_cell(ws: Any, row_idx: int, header_map: dict[str, int], key: str, default: str = "") -> str:
+    col = header_map.get(key.lower())
+    if col is None:
+        return default
+    return str(ws.cell(row_idx, col).value or "").strip()
+
+
+def _workbook_city_slug(file_path: Path) -> str:
+    try:
+        rel = file_path.resolve().relative_to(OUTPUT_DIR.resolve())
+    except ValueError:
+        return ""
+    if len(rel.parts) >= 3:
+        return _slugify_optional(rel.parts[1])
+    return ""
+
+
+def _stable_lead_id(file_path: Path, row_idx: int, seed: str) -> str:
+    digest = hashlib.sha1(f"{file_path}::{row_idx}::{seed}".encode("utf-8")).hexdigest()[:10].upper()
+    return f"LEAD_{digest}"
+
+
+def load_output_excel_leads(
+    output_root: Path,
+    city_slug: str | None = None,
+) -> tuple[list[dict[str, Any]], dict[Path, dict[str, Any]]]:
+    excel_files = sorted(output_root.rglob("leads.xlsx"))
+    contexts: dict[Path, dict[str, Any]] = {}
+    leads: list[dict[str, Any]] = []
+
+    for file_path in excel_files:
+        workbook_city = _workbook_city_slug(file_path)
+        if city_slug and workbook_city and workbook_city != city_slug:
+            continue
+
+        workbook = openpyxl.load_workbook(file_path)
+        worksheet = workbook.active
+        header_map = _excel_header_map(worksheet)
+        contexts[file_path.resolve()] = {
+            "workbook": workbook,
+            "worksheet": worksheet,
+            "header_map": header_map,
+            "dirty": False,
+        }
+
+        for row_idx in range(2, worksheet.max_row + 1):
+            row_city = _excel_cell(worksheet, row_idx, header_map, "city")
+            row_city_slug = _slugify_optional(row_city)
+            if city_slug and row_city_slug and row_city_slug != city_slug:
+                continue
+
+            email = _excel_cell(worksheet, row_idx, header_map, "email")
+            shop_id = _excel_cell(worksheet, row_idx, header_map, "shop_id")
+            source_website = _excel_cell(worksheet, row_idx, header_map, "source_website")
+            generated_website = _excel_cell(worksheet, row_idx, header_map, "generated_website")
+            website_url = _excel_cell(worksheet, row_idx, header_map, "website_url")
+            effective_website_url = website_url or generated_website or source_website
+            lead_id_seed = shop_id or email or _excel_cell(worksheet, row_idx, header_map, "name")
+            lead_id = shop_id or _stable_lead_id(file_path, row_idx, lead_id_seed)
+
+            lead: dict[str, Any] = {
+                "lead_id": lead_id,
+                "shop_name": _excel_cell(worksheet, row_idx, header_map, "name"),
+                "primary_email": email,
+                "emails": [email] if email else [],
+                "phone": _excel_cell(worksheet, row_idx, header_map, "phone"),
+                "category": _excel_cell(worksheet, row_idx, header_map, "category"),
+                "location": row_city,
+                "city": row_city,
+                "country": _excel_cell(worksheet, row_idx, header_map, "country"),
+                "website_url": effective_website_url,
+                "generated_website": generated_website,
+                "source_website": source_website,
+                "whatsapp": _excel_cell(worksheet, row_idx, header_map, "whatsapp"),
+                "review_status": _excel_cell(worksheet, row_idx, header_map, "review_status"),
+                "email_status": _excel_cell(worksheet, row_idx, header_map, "email_status"),
+                "rating": _excel_cell(worksheet, row_idx, header_map, "rating"),
+                "review_count": _excel_cell(worksheet, row_idx, header_map, "review_count"),
+                "_source_file": str(file_path.resolve()),
+                "_source_row": row_idx,
+            }
+            leads.append(lead)
+
+    return leads, contexts
+
+
+def _ensure_excel_column(context: dict[str, Any], header: str) -> int:
+    header_map: dict[str, int] = context["header_map"]
+    worksheet = context["worksheet"]
+    existing = header_map.get(header.lower())
+    if existing is not None:
+        return existing
+    col_idx = worksheet.max_column + 1
+    worksheet.cell(1, col_idx).value = header
+    header_map[header.lower()] = col_idx
+    context["dirty"] = True
+    return col_idx
+
+
+def _format_email_status(status: str, reason: str = "") -> str:
+    normalized_status = status.strip().lower()
+    normalized_reason = reason.strip()
+    if normalized_reason:
+        return f"{normalized_status}: {normalized_reason}"
+    return normalized_status
+
+
+def update_excel_email_status(
+    contexts: dict[Path, dict[str, Any]],
+    lead: dict[str, Any],
+    status: str,
+    reason: str = "",
+) -> None:
+    source_file_raw = str(lead.get("_source_file") or "").strip()
+    source_row = int(lead.get("_source_row") or 0)
+    if not source_file_raw or source_row <= 1:
+        return
+
+    source_path = Path(source_file_raw).resolve()
+    context = contexts.get(source_path)
+    if context is None:
+        return
+
+    worksheet = context["worksheet"]
+    email_status_col = _ensure_excel_column(context, "email_status")
+    worksheet.cell(source_row, email_status_col).value = _format_email_status(status, reason)
+    context["dirty"] = True
+
+
+def save_excel_contexts(contexts: dict[Path, dict[str, Any]], *, dry_run: bool) -> None:
+    for path, context in contexts.items():
+        workbook = context["workbook"]
+        try:
+            if context.get("dirty") and not dry_run:
+                workbook.save(path)
+        finally:
+            workbook.close()
 
 
 def load_status(city_slug: str) -> dict[str, dict[str, Any]]:
@@ -521,6 +747,7 @@ def generate_email_via_groq(
     category = str(lead.get("category") or "business").strip()
     city_name = str(lead.get("location") or "your city").strip()
     location = str(lead.get("location") or city_name).strip()
+    website_url = str(lead.get("website_url") or "").strip()
     rating = _to_float_or_none(lead.get("rating"))
     review_count = _to_int_or_none(lead.get("review_count"))
 
@@ -537,6 +764,7 @@ def generate_email_via_groq(
         "category": category,
         "city": city_name,
         "location": location,
+        "website_url": website_url,
         "rating": str(rating) if rating is not None else "",
         "review_count": str(review_count) if review_count is not None else "",
         "agency_name": AGENCY_NAME,
@@ -557,6 +785,7 @@ def generate_email_via_groq(
         f"Template Instructions:\n{template_instructions}\n\n"
         f"Business Name: {shop_name}\n"
         f"Category: {category}\n"
+        f"Website URL From Row: {website_url or 'not provided'}\n"
         f"City: {city_name}\n"
         f"Location: {location}\n"
         f"{rating_text}\n"
@@ -567,6 +796,7 @@ def generate_email_via_groq(
         "Include this exact signature block in the body:\n"
         f"{signature}\n"
         f"{'Also include this opt-out line: ' + opt_out_footer if opt_out_footer else ''}\n"
+        "Use the business name, category, and website URL from the row to personalize the email.\n"
         "Do not include markdown."
     )
 
@@ -678,6 +908,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("city_name", nargs="?", default=None)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
+        "--require-approved-review",
+        action="store_true",
+        help="Abort if no row with review_status=good exists in any output leads.xlsx file.",
+    )
+    parser.add_argument(
         "--dry-run-no-groq",
         action="store_true",
         help="Only print eligible recipients; skip Groq generation and SMTP send.",
@@ -688,8 +923,17 @@ def _build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     _configure_logging()
     args = _build_parser().parse_args()
+    _ensure_template_dependencies_exist()
     if args.dry_run_no_groq and not args.dry_run:
         raise SystemExit("--dry-run-no-groq requires --dry-run.")
+
+    if args.require_approved_review:
+        approved_rows = _count_approved_review_rows(OUTPUT_DIR)
+        if approved_rows == 0:
+            raise SystemExit(
+                "No good review rows found in any leads.xlsx under output/. "
+                "Run website checking/review so at least one row has review_status=good before outreach."
+            )
 
     if args.city_name:
         city_name = args.city_name.strip()
@@ -714,23 +958,17 @@ def main() -> None:
     )
     suppression_list = _load_suppression_list(SUPPRESSION_LIST_PATH)
     opt_out_footer = UNSUBSCRIBE_TEXT
-
-    leads = load_leads_auto(
-        city_slug if city_slug else None,
-        allow_json_fallback_when_excel_empty=bool(args.dry_run_no_groq),
-    )
-    emailable_leads = []
-    for lead in leads:
-        website_status = str(lead.get("website_status") or "").strip().lower()
-        email = resolve_lead_email(lead)
-        if website_status == "none" and email:
-            emailable_leads.append(lead)
-
-    if not emailable_leads:
+    sent_count = 0
+    skipped_count = 0
+    leads, excel_contexts = load_output_excel_leads(OUTPUT_DIR, city_slug if city_slug else None)
+    if not leads:
+        save_excel_contexts(excel_contexts, dry_run=True)
         logger.info(
-            "No leads with valid email for city=%s. Skipping template generation and send flow.",
+            "No leads.xlsx rows found for city=%s. Skipping email flow.",
             city_slug or "",
         )
+        print("PIPELINE_STAT: emails_sent=0")
+        print("PIPELINE_STAT: emails_skipped=0")
         return
 
     category_bucket_doc: dict[str, Any] = {}
@@ -752,149 +990,212 @@ def main() -> None:
     audit_log_path = email_status_dir / f"{effective_slug}_audit_log.json"
     rate_state_path = email_status_dir / f"{effective_slug}_rate_state.json"
     limiter = RateLimiter(MAX_PER_HOUR, MAX_PER_DAY, rate_state_path)
-
-    for lead in emailable_leads:
-        lead_id = str(lead.get("lead_id") or "").strip()
-        if not lead_id:
-            continue
-
-        email = resolve_lead_email(lead)
-        if not email:
-            continue
-
-        normalized_email = normalize_email(email)
-        if not _is_valid_email(normalized_email):
-            logger.warning("Skipping lead with invalid email format lead=%s email=%s", lead_id, email)
-            continue
-        domain = _email_domain(normalized_email)
-        if normalized_email in suppression_list:
-            logger.info("Skipping suppressed recipient lead=%s email=%s", lead_id, normalized_email)
-            continue
-        if domain and domain in BLOCKED_EMAIL_DOMAINS:
-            logger.info("Skipping blocked domain lead=%s domain=%s", lead_id, domain)
-            continue
-        campaign_id = str(lead.get("campaign_id") or effective_slug).strip()
-        dedup_key = f"{campaign_id}::{normalized_email}"
-
-        existing_status = status_data.get(lead_id, {})
-        if isinstance(existing_status, dict) and existing_status.get("email_sent") is True:
-            continue
-        should_skip, skip_reason = _should_skip_due_to_failures(existing_status)
-        if should_skip:
-            logger.info("Skipping lead due to failure policy lead=%s reason=%s", lead_id, skip_reason)
-            continue
-        if dedup_key in dedup_store:
-            logger.info("Skipping duplicate recipient in same campaign: %s", dedup_key)
-            continue
-
-        if needs_send:
-            allowed, reason = limiter.can_send()
-            if not allowed:
-                logger.info("Stopping send flow: %s", reason)
-                break
-
-        bucket_key = "na"
-        scenario = "na"
-        bucket_no = "0"
-        subject = ""
-        body = ""
-        if needs_generation:
-            bucket_key, scenario, bucket_no = resolve_bucket_and_scenario(
-                str(lead.get("category") or ""),
-                category_bucket_doc,
-            )
-            template_text = select_template(bucket_key, scenario, bucket_template_doc)
-            if not template_text:
-                logger.warning("No template found for bucket=%s scenario=%s", bucket_key, scenario)
+    try:
+        for lead in leads:
+            lead_id = str(lead.get("lead_id") or "").strip()
+            if not lead_id:
+                skipped_count += 1
+                update_excel_email_status(excel_contexts, lead, "skipped", "missing lead_id")
+                _emit_pipeline_event("site", "unknown", "SKIPPED", "missing lead_id")
                 continue
 
-            valid = False
-            guardrail_reason = ""
-            for _ in range(2):
-                try:
-                    subject, body = generate_email_via_groq(
-                        lead,
-                        bucket_key,
-                        scenario,
-                        bucket_no,
-                        template_text,
-                        signature,
-                        opt_out_footer,
+            review_status = str(lead.get("review_status") or "").strip().lower()
+            if review_status != "good":
+                skipped_count += 1
+                update_excel_email_status(
+                    excel_contexts,
+                    lead,
+                    "skipped",
+                    f"review_status={review_status or 'blank'}",
+                )
+                _emit_pipeline_event("site", lead_id, "SKIPPED", f"review_status={review_status or 'blank'}")
+                continue
+
+            email = resolve_lead_email(lead)
+            if not email:
+                skipped_count += 1
+                update_excel_email_status(excel_contexts, lead, "skipped", "missing email")
+                _emit_pipeline_event("site", lead_id, "SKIPPED", "missing email")
+                continue
+
+            normalized_email = normalize_email(email)
+            if not _is_valid_email(normalized_email):
+                logger.warning("Skipping lead with invalid email format lead=%s email=%s", lead_id, email)
+                skipped_count += 1
+                update_excel_email_status(excel_contexts, lead, "skipped", "invalid email format")
+                _emit_pipeline_event("site", lead_id, "SKIPPED", "invalid email format")
+                continue
+
+            suppressed, suppression_reason = _is_suppressed_recipient(normalized_email, suppression_list)
+            if suppressed:
+                logger.info("Skipping suppressed recipient lead=%s email=%s", lead_id, normalized_email)
+                skipped_count += 1
+                update_excel_email_status(excel_contexts, lead, "skipped", suppression_reason)
+                _emit_pipeline_event("site", lead_id, "SKIPPED", suppression_reason)
+                continue
+
+            campaign_id = str(lead.get("campaign_id") or effective_slug).strip()
+            dedup_key = f"{campaign_id}::{normalized_email}"
+
+            existing_status = status_data.get(lead_id, {})
+            if isinstance(existing_status, dict) and existing_status.get("email_sent") is True:
+                update_excel_email_status(excel_contexts, lead, "sent")
+                _emit_pipeline_event("site", lead_id, "SKIPPED", "already sent")
+                continue
+
+            should_skip, skip_reason = _should_skip_due_to_failures(existing_status)
+            if should_skip:
+                logger.info("Skipping lead due to failure policy lead=%s reason=%s", lead_id, skip_reason)
+                skipped_count += 1
+                update_excel_email_status(excel_contexts, lead, "skipped", skip_reason)
+                _emit_pipeline_event("site", lead_id, "SKIPPED", skip_reason)
+                continue
+
+            if dedup_key in dedup_store:
+                logger.info("Skipping duplicate recipient in same campaign: %s", dedup_key)
+                skipped_count += 1
+                update_excel_email_status(excel_contexts, lead, "skipped", "duplicate recipient in campaign")
+                _emit_pipeline_event("site", lead_id, "SKIPPED", "duplicate recipient in campaign")
+                continue
+
+            if needs_send:
+                allowed, reason = limiter.can_send()
+                if not allowed:
+                    logger.info("Stopping send flow: %s", reason)
+                    skipped_count += 1
+                    update_excel_email_status(excel_contexts, lead, "skipped", reason)
+                    _emit_pipeline_event("site", lead_id, "SKIPPED", reason)
+                    break
+
+            bucket_key = "na"
+            scenario = "na"
+            bucket_no = "0"
+            subject = ""
+            body = ""
+            if needs_generation:
+                bucket_key, scenario, bucket_no = resolve_bucket_and_scenario(
+                    str(lead.get("category") or ""),
+                    category_bucket_doc,
+                )
+                template_text = select_template(bucket_key, scenario, bucket_template_doc)
+                if not template_text:
+                    logger.warning("No template found for bucket=%s scenario=%s", bucket_key, scenario)
+                    skipped_count += 1
+                    update_excel_email_status(excel_contexts, lead, "skipped", "no template available")
+                    _emit_pipeline_event("site", lead_id, "SKIPPED", "no template available")
+                    continue
+
+                valid = False
+                guardrail_reason = ""
+                for _ in range(2):
+                    try:
+                        subject, body = generate_email_via_groq(
+                            lead,
+                            bucket_key,
+                            scenario,
+                            bucket_no,
+                            template_text,
+                            signature,
+                            opt_out_footer,
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        logger.error("Groq generation failed for lead=%s error=%s", lead_id, exc)
+                        guardrail_reason = f"groq generation failed: {exc}"
+                        break
+                    valid, guardrail_reason = validate_generated_email(subject, body, signature)
+                    if valid:
+                        break
+                if not valid:
+                    logger.warning(
+                        "Skipping lead due to guardrail failure lead=%s reason=%s",
+                        lead_id,
+                        guardrail_reason or "generation_failed",
                     )
-                except Exception as exc:  # noqa: BLE001
-                    logger.error("Groq generation failed for lead=%s error=%s", lead_id, exc)
-                    break
-                valid, guardrail_reason = validate_generated_email(subject, body, signature)
-                if valid:
-                    break
-            if not valid:
-                logger.warning(
-                    "Skipping lead due to guardrail failure lead=%s reason=%s",
-                    lead_id,
-                    guardrail_reason or "generation_failed",
-                )
+                    skipped_count += 1
+                    update_excel_email_status(
+                        excel_contexts,
+                        lead,
+                        "skipped",
+                        guardrail_reason or "generation failed",
+                    )
+                    _emit_pipeline_event("site", lead_id, "SKIPPED", guardrail_reason or "generation failed")
+                    continue
+
+            if args.dry_run:
+                if args.dry_run_no_groq:
+                    logger.info("[DRY-RUN-NO-GROQ] lead_id=%s email=%s", lead_id, normalized_email)
+                else:
+                    logger.info(
+                        "[DRY-RUN] lead_id=%s email=%s bucket=%s scenario=%s subject=%s",
+                        lead_id,
+                        normalized_email,
+                        bucket_no,
+                        scenario,
+                        subject,
+                    )
+                skipped_count += 1
+                update_excel_email_status(excel_contexts, lead, "skipped", "dry run")
+                _emit_pipeline_event("site", lead_id, "SKIPPED", "dry run")
                 continue
 
-        if args.dry_run:
-            if args.dry_run_no_groq:
-                logger.info("[DRY-RUN-NO-GROQ] lead_id=%s email=%s", lead_id, normalized_email)
-            else:
-                logger.info(
-                    "[DRY-RUN] lead_id=%s email=%s bucket=%s scenario=%s subject=%s",
-                    lead_id,
-                    normalized_email,
-                    bucket_no,
-                    scenario,
-                    subject,
-                )
-            continue
+            try:
+                msg_id, provider_response = send_email_via_zoho(normalized_email, subject, body)
+                status_value = "SENT"
+                limiter.record_send()
+                sent_count += 1
+                update_excel_email_status(excel_contexts, lead, "sent")
+                _emit_pipeline_event("site", lead_id, "SENT")
+            except Exception as exc:  # noqa: BLE001
+                msg_id = ""
+                provider_response = str(exc)
+                status_value = "FAILED"
+                skipped_count += 1
+                update_excel_email_status(excel_contexts, lead, "failed", provider_response)
+                _emit_pipeline_event("site", lead_id, "FAILED", provider_response)
 
-        try:
-            msg_id, provider_response = send_email_via_zoho(normalized_email, subject, body)
-            status_value = "SENT"
-            limiter.record_send()
-        except Exception as exc:  # noqa: BLE001
-            msg_id = ""
-            provider_response = str(exc)
-            status_value = "FAILED"
-
-        timestamp = utc_now_iso()
-        smtp_row = {
-            "message_id": msg_id,
-            "provider_response": provider_response,
-            "timestamp": timestamp,
-            "recipient": normalized_email,
-            "subject": subject,
-        }
-        append_jsonl(smtp_log_path, smtp_row)
-
-        audit_row = {
-            "lead_id": lead_id,
-            "normalized_email": normalized_email,
-            "bucket_no": bucket_no,
-            "scenario": scenario,
-            "subject": subject,
-            "message_id": msg_id,
-            "provider_response": provider_response,
-            "status": status_value,
-            "timestamp": timestamp,
-            "whatsapp": str(lead.get("whatsapp") or "").strip(),
-        }
-        append_audit_log(audit_log_path, audit_row)
-
-        update_status(status_data, lead_id, subject, status_value, timestamp)
-        save_status(effective_slug, status_data)
-
-        if status_value == "SENT":
-            dedup_store[dedup_key] = {
-                "lead_id": lead_id,
-                "email": normalized_email,
-                "campaign_id": campaign_id,
+            timestamp = utc_now_iso()
+            smtp_row = {
+                "message_id": msg_id,
+                "provider_response": provider_response,
                 "timestamp": timestamp,
+                "recipient": normalized_email,
+                "subject": subject,
             }
-            save_dedup_store(effective_slug, dedup_store)
-            update_daily_send_summary(DAILY_SUMMARY_PATH, timestamp)
-            RateLimiter.apply_random_delay()
+            append_jsonl(smtp_log_path, smtp_row)
+
+            audit_row = {
+                "lead_id": lead_id,
+                "normalized_email": normalized_email,
+                "bucket_no": bucket_no,
+                "scenario": scenario,
+                "subject": subject,
+                "message_id": msg_id,
+                "provider_response": provider_response,
+                "status": status_value,
+                "timestamp": timestamp,
+                "whatsapp": str(lead.get("whatsapp") or "").strip(),
+                "website_url": str(lead.get("website_url") or "").strip(),
+            }
+            append_audit_log(audit_log_path, audit_row)
+
+            update_status(status_data, lead_id, subject, status_value, timestamp)
+            save_status(effective_slug, status_data)
+
+            if status_value == "SENT":
+                dedup_store[dedup_key] = {
+                    "lead_id": lead_id,
+                    "email": normalized_email,
+                    "campaign_id": campaign_id,
+                    "timestamp": timestamp,
+                }
+                save_dedup_store(effective_slug, dedup_store)
+                update_daily_send_summary(DAILY_SUMMARY_PATH, timestamp)
+                RateLimiter.apply_random_delay()
+    finally:
+        save_excel_contexts(excel_contexts, dry_run=args.dry_run)
+
+    print(f"PIPELINE_STAT: emails_sent={sent_count}")
+    print(f"PIPELINE_STAT: emails_skipped={skipped_count}")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,11 @@
 # BizSiteGen — Full Pipeline
 
+## Before First Run
+1. Run `python run_pipeline.py --preflight` first.
+2. Copy `.env.example` to `.env` and fill in all `FAIL` vars.
+3. Run preflight again until all checks pass.
+4. Then run the full pipeline.
+
 ## Node.js (portable, project-local)
 If you want a Node that works for anyone using this repo (without relying on global installs):
 1) Run `scripts\setup-node.cmd`

@@ -3,6 +3,7 @@ const path = require("path");
 
 const ANALYTICS_DIR = path.resolve(__dirname);
 const INDEX_FILE = path.join(ANALYTICS_DIR, "index.json");
+const INDEX_FILE_TMP = `${INDEX_FILE}.tmp`;
 const VALID_STATUSES = new Set([
   "scraped",
   "building",
@@ -19,7 +20,11 @@ function load() {
 
 function save(data) {
   fs.mkdirSync(ANALYTICS_DIR, { recursive: true });
-  fs.writeFileSync(INDEX_FILE, JSON.stringify(data, null, 2) + "\n", "utf8");
+  fs.writeFileSync(INDEX_FILE_TMP, JSON.stringify(data, null, 2) + "\n", "utf8");
+  if (fs.existsSync(INDEX_FILE)) {
+    fs.rmSync(INDEX_FILE, { force: true });
+  }
+  fs.renameSync(INDEX_FILE_TMP, INDEX_FILE);
 }
 
 function makeKey(country, city, category) {

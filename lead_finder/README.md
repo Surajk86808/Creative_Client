@@ -85,7 +85,6 @@ GROQ_API_KEY=your_groq_key_here
 
 EMAIL_SMTP_HOST=smtp.zoho.in
 EMAIL_SMTP_PORT=465
-<<<<<<< HEAD
 EMAIL_SMTP_SECURITY=ssl    # ssl | starttls | plain
 EMAIL_SMTP_USER=you@domain.com
 EMAIL_HOST_PASSWORD=...   # required by email_sender/agent.py
@@ -97,16 +96,6 @@ EMAIL_SIGNATURE=Website: https://youragency.com\nMobile: +1-000-000-0000\nYour N
 EMAIL_UNSUBSCRIBE_TEXT=To opt out, reply STOP.
 EMAIL_SUPPRESSION_LIST_PATH=public/email_status/suppression_list.txt
 EMAIL_BLOCKED_DOMAINS=example.com,mailinator.com
-=======
-EMAIL_SMTP_USER=you@yourdomain.com
-EMAIL_SMTP_PASS=your_smtp_password
-EMAIL_FROM=you@yourdomain.com
-EMAIL_USE_TLS=false
-EMAIL_HOST_PASSWORD=your_smtp_password
-
-MAX_PER_HOUR=50
-MAX_PER_DAY=200
->>>>>>> 93fa38e5f6e1812fa17abee1a08801a29c194497
 ```
 
 > `EMAIL_HOST_PASSWORD` is used by `agent.py`. It can be the same value as `EMAIL_SMTP_PASS`.
@@ -133,16 +122,12 @@ python run.py --city "bengaluru" --categories "salon,gym,clinic" --max 0 --analy
 
 `--max 0` scrapes until listings are exhausted. Use `--max 20` to cap per category.
 
-<<<<<<< HEAD
 - `public/data/{city}/{city}_leads.json`
 - `public/data/{city}/{city}_leads.txt`
 - `public/data/{city}/{city}_no_website.json`
 - `public/data/{city}/registry.json`
 - `public/data/qualified.json`
 - `public/data/{city}/scraped.db`
-=======
----
->>>>>>> 93fa38e5f6e1812fa17abee1a08801a29c194497
 
 ## Output Files
 
@@ -174,12 +159,8 @@ Sender eligibility rules:
 Generates personalized emails via Groq LLM using bucket/template config.
 
 ```powershell
-<<<<<<< HEAD
 cd "D:\client finder\lead_finder"
 python .\email_sender\agent.py bengaluru --dry-run --dry-run-no-groq
-=======
-# Dry run — shows eligible leads without sending
->>>>>>> 93fa38e5f6e1812fa17abee1a08801a29c194497
 python .\email_sender\agent.py bengaluru --dry-run
 
 # Live run — generates and sends emails
@@ -188,7 +169,6 @@ python .\email_sender\agent.py bengaluru
 
 ### run.py — Alternate CLI sender
 
-<<<<<<< HEAD
 - Sends only when `website_status == "none"`.
 - Sends only when a valid email exists.
 - Uses `primary_email` first; falls back to first valid item in `emails[]`.
@@ -204,24 +184,6 @@ python email_sender/run.py --city "bengaluru"
 ```
 
 Note: `email_sender/run.py` is now a compatibility wrapper that forwards to `email_sender/agent.py`.
-
-## Recent Improvement Implemented
-=======
-Supports category filtering and exports phone-only leads separately.
-
-```powershell
-# Dry run — split emailable vs phone-only, saves phone-only to leads_number.json
-python email_sender\run.py --city "bengaluru" --dry-run
-
-# Filter by category
-python email_sender\run.py --city "bengaluru" --category "salon" --dry-run
-
-# Live run with subject override (skips Groq generation)
-python email_sender\run.py --city "bengaluru" --subject "Quick website idea"
-```
-
----
->>>>>>> 93fa38e5f6e1812fa17abee1a08801a29c194497
 
 ## Template Setup (required for agent.py)
 
@@ -276,12 +238,8 @@ You ran the sender from the wrong directory. Go back to the project root.
 cd "D:\client finder\lead_finder"
 ```
 
-<<<<<<< HEAD
-### Error: `Leads file not found: public\data\bengaluru\bengaluru_leads.json`
-=======
 ### `No leads with valid email ... Skipping template generation and send flow.`
 Expected behavior. The current city dataset has no leads with both `website_status == "none"` and a valid email. Run the scraper first, or check that email extraction worked.
->>>>>>> 93fa38e5f6e1812fa17abee1a08801a29c194497
 
 ### `Template validation failed: Invalid JSON in category_bucket.json`
 One of the template files is empty or malformed. Add valid JSON to both `category_bucket.json` and `bucket_email_template.json` before running. See the Template Setup section above for the required structure.
@@ -318,12 +276,6 @@ NEW → ANALYZED → EMAILED → RESPONDED → CONVERTED
 
 Leads in `EMAILED`, `RESPONDED`, `CONVERTED`, or `DO_NOT_CONTACT` are blocked from outreach automatically.
 
-<<<<<<< HEAD
-1. Add default valid template JSON scaffolds for new setups.
-2. Add integration test for `agent.py` early-exit behavior.
-3. Add `--project-root` or path-safe loading in sender to reduce cwd errors.
-4. Add a preflight command that checks env vars, templates, and lead eligibility in one shot.
-=======
 ---
 
 ## Rate Limits and Guardrails
@@ -333,4 +285,3 @@ Leads in `EMAILED`, `RESPONDED`, `CONVERTED`, or `DO_NOT_CONTACT` are blocked fr
 - Per-campaign deduplication prevents sending twice to the same email
 - Email content is validated before sending: subject ≤ 120 chars, body ≤ 170 words, no banned phrases, signature required
 - SMTP events and audit logs stored in `public/email_status/`
->>>>>>> 93fa38e5f6e1812fa17abee1a08801a29c194497
