@@ -1,3 +1,47 @@
-tools/node/**
-output/**
-**/*.xlsx
+# Workspace-wide ignore rules
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Node / frontend
+node_modules/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Logs / temp
+*.log
+*.tmp
+*.bak
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Environment files
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Generated pipeline artifacts
+Leads/backend/output/**/node_modules/
+Leads/backend/output/**/screenshots/
+Leads/backend/output/**/*.xlsx
+Leads/backend/output/**/*.csv
+Mcp/logs/
+
+# Tooling / deploy
+.vercel/

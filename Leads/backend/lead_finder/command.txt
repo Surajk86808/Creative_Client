@@ -1,0 +1,15 @@
+# Canonical full monorepo pipeline (run from repo root)
+python run_pipeline.py --city "city_name" --categories-file categories.txt --max 0
+
+# Lead-finder only (run from lead_finder/)
+python run.py --city "city_name" --categories-file categories.txt --max 0 --analyze-websites
+python run.py --city "city_name" --categories "category_name" --max 0 --analyze-websites
+python run.py --city "Austin" --categories "car wash,gym,salon" --max 0 --analyze-websites
+
+# Email sender (run from repo root)
+python .\email_sender\agent.py bengaluru --dry-run
+python .\email_sender\agent.py bengaluru
+
+# Compatibility wrapper (run from repo root)
+python email_sender/run.py --city "bengaluru" --dry-run
+python email_sender/run.py --city "bengaluru"

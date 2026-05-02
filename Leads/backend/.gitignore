@@ -1,0 +1,48 @@
+tools/node/**
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# Node / frontend build artifacts
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.coverage
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Environment files
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Deployment / hosting
+.vercel
+
+# Generated pipeline artifacts
+output/**/*.xlsx
+output/**/*.csv
+output/**/screenshots/
+screenshot-taker/screenshots/
+screenshot-taker/output/
+*/screenshots/
+*/output/
