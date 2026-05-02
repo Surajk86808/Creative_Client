@@ -1,20 +1,17 @@
-﻿const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 const { config } = require("../config");
 const { initDB, isProcessed, markProcessing, markBuilt, markDeployed, markError } = require("../db");
-const { readAllLeads, updateRow } = require("../excel");
 const { readReadyLeads } = require("../leads_json");
 const { matchTemplate } = require("../matcher");
 const { fillTemplate } = require("../filler");
-const { deployToVercel } = require("../deployer");
 const { validateTemplates } = require("../validator");
-const { sleep, ensureDir, chunkArray, createMutex } = require("../utils");
+const { ensureDir, chunkArray, createMutex } = require("../utils");
 const { logErrorToFile } = require("../logger");
-const { startPreviewServer } = require("../preview");
 const { outputDirForLead } = require("../leads");
-const { exportReports } = require("../exporter");
 const { maybePushAndCleanup } = require("../output_git");
 const tracker = require("../../../analytics/tracker");
+
 const PIPELINE_LOG_STRUCTURED = String(process.env.PIPELINE_LOG_FORMAT || "").trim().toLowerCase() === "structured";
 
 function emitPipelineEvent(entity, label, status, detail = "") {
@@ -76,6 +73,23 @@ async function writeDeployedUrlToLeadRow(leadFileLock, business, deployedUrl) {
   });
 }
 
+function resolvePublishedUrl(siteInfo) {
+  if (siteInfo.publicUrl) return siteInfo.publicUrl;
+  return siteInfo.sitePath;
+}
+
+function loadExcelModule() {
+  return require("../excel");
+}
+
+function loadPreviewModule() {
+  return require("../preview");
+}
+
+function loadExporterModule() {
+  return require("../exporter");
+}
+
 async function runCommand(opts) {
   ensureDir(path.dirname(config.DB_FILE));
   ensureDir(config.OUTPUT_DIR);
@@ -90,7 +104,7 @@ async function runCommand(opts) {
   const preview = !!opts.preview;
   if (preview && !dryRun) {
     dryRun = true;
-    if (!PIPELINE_LOG_STRUCTURED) console.log("[info] --preview implies --dry-run (skipping deploy)");
+    if (!PIPELINE_LOG_STRUCTURED) console.log("[info] --preview implies --dry-run (skipping sites.json activation)");
   }
 
   let businesses;
@@ -98,6 +112,7 @@ async function runCommand(opts) {
   if (useJsonLeads) {
     businesses = readReadyLeads();
   } else {
+    const { readAllLeads } = loadExcelModule();
     businesses = await readAllLeads();
   }
   if (onlyId) businesses = businesses.filter((b) => b.shop_id === onlyId);
@@ -113,6 +128,7 @@ async function runCommand(opts) {
       groups.get(key).count += 1;
     }
   }
+
   if (!PIPELINE_LOG_STRUCTURED) console.log(`[info] Reading ${businesses.length} pending businesses from leads/`);
   if (businesses.length === 0) {
     console.log("PIPELINE_STAT: sites_built=0");
@@ -121,12 +137,11 @@ async function runCommand(opts) {
   }
 
   const excelLock = createMutex();
-  const deployLock = createMutex();
   const leadFileLock = createMutex();
-  let lastDeployAt = 0;
 
   let server = null;
   if (preview) {
+    const { startPreviewServer } = loadPreviewModule();
     server = await startPreviewServer(config.OUTPUT_DIR, 3000);
     if (!PIPELINE_LOG_STRUCTURED) console.log("[info] Preview server: http://127.0.0.1:3000/ (local only)");
   }
@@ -136,13 +151,15 @@ async function runCommand(opts) {
     const shopName = business.shop_name;
     const updateExcelRow = async (url, status) => {
       if (business.sourceFile) {
+        const { updateRow } = loadExcelModule();
         await excelLock.run(() => updateRow(business, url || "", status));
       }
     };
+
     try {
       if (isProcessed(shopId)) {
-        if (!emitSiteEvent(business, "SKIPPED", "already deployed")) {
-          console.log(`[skip] [${idx}/${total}] ${shopName} - already deployed, skipping`);
+        if (!emitSiteEvent(business, "SKIPPED", "already active in central app")) {
+          console.log(`[skip] [${idx}/${total}] ${shopName} - already active, skipping`);
         }
         return {
           shopId,
@@ -150,9 +167,11 @@ async function runCommand(opts) {
           groupKey: business._country ? `${business._country}/${business._city}/${business._category}` : null
         };
       }
+
       if (!emitSiteEvent(business, "TEMPLATE_FILL")) {
         console.log(`[build] [${idx}/${total}] Processing: ${shopName} (category: ${business.category || "n/a"})`);
       }
+
       markProcessing(shopId, shopName);
       await updateExcelRow("", "processing");
 
@@ -164,74 +183,59 @@ async function runCommand(opts) {
           template_used: template
         });
       }
-      if (!PIPELINE_LOG_STRUCTURED) console.log("[info] Filling template via Groq...");
+
       const nestedOutputDir = business._country
         ? path.join(config.OUTPUT_DIR, business._country, business._city, business._category, leadOutputId(business))
         : outputDirForLead(shopId, business.sourceRel || `${shopId}.xlsx`);
-      const outputPath = await fillTemplate(template, business, { outputDir: nestedOutputDir });
+
+      const siteInfo = await fillTemplate(template, business, {
+        outputDir: nestedOutputDir,
+        dryRun
+      });
+
       emitSiteEvent(business, "PLACEHOLDER_CHECK");
 
       try {
-        const pushRes = await maybePushAndCleanup(config.OUTPUT_DIR, outputPath, business);
-        if (pushRes?.pushed) {
-          if (!PIPELINE_LOG_STRUCTURED) {
-            console.log(`[push] Pushed generated code to GitHub (${pushRes.deletedLocal ? "deleted local copy" : "kept local copy"})`);
-          }
+        const pushRes = await maybePushAndCleanup(config.OUTPUT_DIR, siteInfo.outputFolder, business);
+        if (pushRes?.pushed && !PIPELINE_LOG_STRUCTURED) {
+          console.log(`[push] Pushed generated metadata (${pushRes.deletedLocal ? "deleted local copy" : "kept local copy"})`);
         }
-      } catch (e) {
-        console.log(`WARN: Output Git push failed (continuing): ${e && e.message ? e.message : e}`);
-      }
-
-      let url = null;
-      if (dryRun) {
-        if (!PIPELINE_LOG_STRUCTURED) console.log(`[info] Dry run: skipping deploy for ${shopId}`);
-      } else {
-        await deployLock.run(async () => {
-          const now = Date.now();
-          const wait = Math.max(0, 2000 - (now - lastDeployAt));
-          if (wait) await sleep(wait);
-          if (!PIPELINE_LOG_STRUCTURED) console.log("[info] Deploying to Vercel...");
-          url = await deployToVercel(outputPath, shopId, template);
-          lastDeployAt = Date.now();
-        });
-      }
-
-      if (url) {
-        markBuilt(shopId, template);
-        markDeployed(shopId, template, url);
-        await writeDeployedUrlToLeadRow(leadFileLock, business, url);
-        await updateExcelRow(url, "deployed");
-        emitSiteEvent(business, "DEPLOYED");
-        emitSiteEvent(business, "EXCEL_UPDATED");
-        if (!PIPELINE_LOG_STRUCTURED) console.log(`[ok] ${shopName} -> ${url}`);
-        return { shopId, status: "deployed", url, groupKey: business._country ? `${business._country}/${business._city}/${business._category}` : null };
+      } catch (error) {
+        console.log(`WARN: Output Git push failed (continuing): ${error && error.message ? error.message : error}`);
       }
 
       if (dryRun) {
         markBuilt(shopId, template);
-        await updateExcelRow("", "built");
-        emitSiteEvent(business, "BUILT");
+        await updateExcelRow(siteInfo.sitePath, "built");
+        emitSiteEvent(business, "BUILT", siteInfo.sitePath);
         emitSiteEvent(business, "EXCEL_UPDATED");
-        if (!PIPELINE_LOG_STRUCTURED) console.log(`[ok] ${shopName} -> (generated locally at ${outputPath})`);
-        return { shopId, status: "built", url: null, groupKey: business._country ? `${business._country}/${business._city}/${business._category}` : null };
+        if (!PIPELINE_LOG_STRUCTURED) console.log(`[ok] ${shopName} -> (prepared central route ${siteInfo.sitePath})`);
+        return {
+          shopId,
+          status: "built",
+          url: siteInfo.sitePath,
+          groupKey: business._country ? `${business._country}/${business._city}/${business._category}` : null
+        };
       }
 
-      markError(shopId, "Deploy failed");
-      await updateExcelRow("", "error");
-      emitSiteEvent(business, "FAILED", "deploy failed");
-      if (!PIPELINE_LOG_STRUCTURED) console.log(`[error] ${shopName} - deploy failed`);
-      return { shopId, status: "error", groupKey: business._country ? `${business._country}/${business._city}/${business._category}` : null };
+      const publishedUrl = resolvePublishedUrl(siteInfo);
+      markBuilt(shopId, template);
+      markDeployed(shopId, template, publishedUrl);
+      await writeDeployedUrlToLeadRow(leadFileLock, business, publishedUrl);
+      await updateExcelRow(publishedUrl, "deployed");
+      emitSiteEvent(business, "DEPLOYED", publishedUrl);
+      emitSiteEvent(business, "EXCEL_UPDATED");
+      if (!PIPELINE_LOG_STRUCTURED) console.log(`[ok] ${shopName} -> ${publishedUrl}`);
+      return {
+        shopId,
+        status: "deployed",
+        url: publishedUrl,
+        groupKey: business._country ? `${business._country}/${business._city}/${business._category}` : null
+      };
     } catch (err) {
       const errorMessage = String(err && err.message ? err.message : err);
-      if (errorMessage.toLowerCase().includes("unresolved placeholders remain")) {
-        const pendingDetail = errorMessage
-          .replace(/^Template fill failed for [^:]+:\s*/i, "")
-          .replace(/^unresolved placeholders remain\s*/i, "")
-          .replace(/^\((.*)\)$/, "$1");
-        emitSiteEvent(business, "PLACEHOLDERS_PENDING", pendingDetail || "unreplaced placeholders");
-      }
       emitSiteEvent(business, "FAILED", errorMessage);
-      markError(shopId, String(err && err.message ? err.message : err));
+      markError(shopId, errorMessage);
       try {
         await updateExcelRow("", "error");
       } catch {
@@ -262,11 +266,11 @@ async function runCommand(opts) {
     const total = businesses.length;
     const settled = await Promise.allSettled(group.map((b, i) => processOne(b, processed + i + 1, total)));
     processed += group.length;
-    for (const s of settled) {
-      if (s.status === "rejected") {
-        logErrorToFile("Unhandled promise rejection in batch", { error: String(s.reason) });
+    for (const settledResult of settled) {
+      if (settledResult.status === "rejected") {
+        logErrorToFile("Unhandled promise rejection in batch", { error: String(settledResult.reason) });
       } else {
-        const result = s.value;
+        const result = settledResult.value;
         if (!result || !result.groupKey) continue;
         if (!groupResults.has(result.groupKey)) {
           groupResults.set(result.groupKey, { built: 0, deployed: 0, error: 0 });
@@ -280,6 +284,7 @@ async function runCommand(opts) {
   }
 
   try {
+    const { exportReports } = loadExporterModule();
     const written = await exportReports(businesses);
     if (!PIPELINE_LOG_STRUCTURED) {
       for (const reportPath of written) console.log(`INFO: Report written: ${reportPath}`);
@@ -287,6 +292,7 @@ async function runCommand(opts) {
   } catch (err) {
     console.log(`WARN: Report export failed: ${err && err.message ? err.message : err}`);
   }
+
   for (const g of groups.values()) {
     const key = `${g.country}/${g.city}/${g.category}`;
     const summary = groupResults.get(key) || { built: 0, deployed: 0, error: 0 };
@@ -298,6 +304,7 @@ async function runCommand(opts) {
       errorCount: summary.error
     });
   }
+
   const totals = [...groupResults.values()].reduce(
     (acc, summary) => ({
       built: acc.built + Number(summary.built || 0),
@@ -305,14 +312,17 @@ async function runCommand(opts) {
     }),
     { built: 0, deployed: 0 }
   );
+
   console.log(`PIPELINE_STAT: sites_built=${totals.built}`);
   console.log(`PIPELINE_STAT: sites_deployed=${totals.deployed}`);
+
   if (server) {
     if (!PIPELINE_LOG_STRUCTURED) {
       console.log("[info] Review dashboard still running at http://127.0.0.1:3000/ . Press Ctrl+C when you are finished reviewing.");
     }
     return;
   }
+
   if (!PIPELINE_LOG_STRUCTURED) console.log("[info] Done");
 }
 

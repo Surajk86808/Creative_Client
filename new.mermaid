@@ -1,0 +1,42 @@
+flowchart TD
+  ROOT["Creative-client- Root"] --> WRAP["run_pipeline.py<br/>compatibility wrapper"]
+  ROOT --> MAP["PROJECT_MAP.md"]
+  ROOT --> AIMAP["AI_USAGE_MAP.md"]
+  ROOT --> MCP["Mcp/"]
+  ROOT --> LEADS["Leads/"]
+
+  WRAP --> BACKPIPE["Leads/backend/run_pipeline.py<br/>canonical orchestrator"]
+
+  LEADS --> BACK["Leads/backend/"]
+  LEADS --> FRONT["Leads/frontend/nexviatech-pipeline/"]
+
+  BACK --> LF["lead_finder/"]
+  BACK --> WB["website-builder/"]
+  BACK --> WC["website_checker/"]
+  BACK --> SS["screenshot-taker/"]
+  BACK --> WA["whatsappcheck/"]
+  BACK --> ES["email_sender/"]
+  BACK --> AN["analytics/"]
+  BACK --> OUT["output/"]
+  BACK --> NW["nexviamain_web/"]
+
+  BACKPIPE --> LF
+  BACKPIPE --> WB
+  BACKPIPE --> WC
+  BACKPIPE --> SS
+  BACKPIPE --> WA
+  BACKPIPE --> ES
+
+  LF --> LFDATA["lead_finder/public/data/<country>/<city>/<category>/"]
+  LF --> ANIDX["analytics/index.json"]
+  WB --> SITEOUT["output/<country>/<city>/<category>/<shop_id>/"]
+  WB --> XLSX["output/<country>/<city>/<category>/leads.xlsx"]
+  WC --> XLSX
+  SS --> XLSX
+  WA --> XLSX
+  ES --> XLSX
+
+  FRONT --> DASH["dashboard UI / viewer layer"]
+  MCP --> MCPSRV["server.py<br/>Gemini MCP bridge"]
+  MCPSRV --> WRAP
+  MCPSRV --> BACK

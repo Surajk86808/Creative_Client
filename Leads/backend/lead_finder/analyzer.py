@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import contextlib
 import io
-import json
 import os
 import re
 import time
@@ -16,24 +15,12 @@ import httpx
 import whois
 from bs4 import BeautifulSoup
 
+from ai.tasks import analyze_lead
 from config import REQUEST_TIMEOUT, WEBSITE_ANALYSIS_TIMEOUT
 from models import WebsiteReport
 
 JQUERY_VERSION_RE = re.compile(r"jquery[-.]([0-9]+\.[0-9]+(\.[0-9]+)?)", re.IGNORECASE)
 YEAR_RE = re.compile(r"(20[0-2][0-9]|19[9][0-9])")
-NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
-NVIDIA_PRIMARY_MODEL = "nvidia/llama-3.1-nemotron-ultra-253b-v1"
-NVIDIA_FALLBACK_MODEL = "nvidia/nemotron-mini-4b-instruct"
-AI_SCORE_PROMPT = """You are a lead qualification expert for a web development agency targeting SMBs.
-Analyze this business lead and return a JSON object with these fields only:
-- ai_score: integer 1-10 (10 = highest conversion potential)
-- weakness_summary: one sentence describing the biggest website weakness
-- outreach_angle: one sentence on best way to pitch this business
-- priority: "high" | "medium" | "low"
-
-Lead data:
-{lead_summary}
-"""
 
 
 def _normalize_url(website: str) -> str:
@@ -120,107 +107,20 @@ def _lead_has_email(lead: dict[str, Any]) -> bool:
     return any(_non_empty_text(item) for item in emails)
 
 
-def _build_lead_summary(lead: dict[str, Any]) -> str:
-    website_present = "yes" if _non_empty_text(lead.get("website")) else "no"
-    phone_present = "yes" if _lead_has_phone(lead) else "no"
-    email_present = "yes" if _lead_has_email(lead) else "no"
-    website_issues = _lead_website_issues(lead)
-    issues_text = ", ".join(website_issues) if website_issues else "none"
-    parts = [
-        f"business name: {_non_empty_text(lead.get('name')) or 'unknown'}",
-        f"category: {_non_empty_text(lead.get('category')) or 'unknown'}",
-        f"city: {_non_empty_text(lead.get('city')) or 'unknown'}",
-        f"website_present: {website_present}",
-        f"website_issues: {issues_text}",
-        f"phone_present: {phone_present}",
-        f"email_present: {email_present}",
-    ]
-    return "\n".join(parts)
-
-
-def _load_openai_client(api_key: str):
-    from openai import OpenAI
-
-    return OpenAI(base_url=NVIDIA_BASE_URL, api_key=api_key)
-
-
-def _extract_json_object(raw: str) -> dict[str, Any]:
-    text = str(raw or "").strip()
-    if not text:
-        raise ValueError("Empty model response")
-    try:
-        parsed = json.loads(text)
-        if isinstance(parsed, dict):
-            return parsed
-    except json.JSONDecodeError:
-        pass
-
-    start = text.find("{")
-    end = text.rfind("}")
-    if start == -1 or end == -1 or end <= start:
-        raise ValueError("No JSON object found in model response")
-    parsed = json.loads(text[start : end + 1])
-    if not isinstance(parsed, dict):
-        raise ValueError("Parsed response is not an object")
-    return parsed
-
-
-def _is_quota_exceeded_error(exc: Exception) -> bool:
-    message = str(exc).lower()
-    return "quota" in message or "429" in message or "insufficient_quota" in message
-
-
-def _request_ai_score(client, model: str, lead_summary: str) -> dict[str, Any]:
-    response = client.chat.completions.create(
-        model=model,
-        temperature=0.2,
-        messages=[
-            {
-                "role": "user",
-                "content": AI_SCORE_PROMPT.format(lead_summary=lead_summary),
-            }
-        ],
-    )
-    content = response.choices[0].message.content if response.choices else ""
-    return _extract_json_object(content or "")
-
-
 def ai_score_lead(lead: dict) -> dict:
-    """Enrich a lead with AI scoring data from NVIDIA NIM when configured."""
-    api_key = os.getenv("NVIDIA_API_KEY", "").strip()
-    if not api_key:
+    """Enrich a lead with centralized AI scoring data when configured."""
+    if not (os.getenv("NVIDIA_SCORING_API_KEY") or os.getenv("NVIDIA_API_KEY")):
         return lead
 
     if all(key in lead for key in ("ai_score", "weakness_summary", "outreach_angle", "priority")):
         return lead
 
     try:
-        client = _load_openai_client(api_key)
-    except Exception:
-        return lead
-
-    lead_summary = _build_lead_summary(lead)
-    try:
-        parsed = _request_ai_score(client, NVIDIA_PRIMARY_MODEL, lead_summary)
-    except Exception as exc:
-        if not _is_quota_exceeded_error(exc):
-            return lead
-        try:
-            parsed = _request_ai_score(client, NVIDIA_FALLBACK_MODEL, lead_summary)
-        except Exception:
-            return lead
-
-    try:
-        ai_score = int(parsed["ai_score"])
-        weakness_summary = str(parsed["weakness_summary"]).strip()
-        outreach_angle = str(parsed["outreach_angle"]).strip()
-        priority = str(parsed["priority"]).strip().lower()
-        if priority not in {"high", "medium", "low"}:
-            raise ValueError("Invalid priority")
-        lead["ai_score"] = max(1, min(10, ai_score))
-        lead["weakness_summary"] = weakness_summary
-        lead["outreach_angle"] = outreach_angle
-        lead["priority"] = priority
+        parsed = analyze_lead(lead)
+        lead["ai_score"] = int(parsed["ai_score"])
+        lead["weakness_summary"] = str(parsed["weakness_summary"]).strip()
+        lead["outreach_angle"] = str(parsed["outreach_angle"]).strip()
+        lead["priority"] = str(parsed["priority"]).strip().lower()
     except Exception:
         lead["ai_score_error"] = True
     return lead

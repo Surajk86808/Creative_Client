@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import logging
 import os
@@ -20,6 +21,7 @@ from typing import Any
 import openpyxl
 import requests
 from dotenv import load_dotenv
+import sys
 
 try:
     from .audit_store import append_audit_log, append_jsonl, utc_now_iso
@@ -34,25 +36,32 @@ except ImportError:
     from retry_utils import retry_operation
     from validation import TemplateValidationError, validate_template_files
 
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(dotenv_path=REPO_ROOT / ".env")
+
+sys.path.insert(0, str(REPO_ROOT))
+from ai.model_config import MODEL_CONFIG
 
 OUTPUT_DIR = _Path(os.getenv("OUTPUT_DIR", str(REPO_ROOT / "output"))).resolve()
 LEAD_FINDER_PUBLIC_DIR = REPO_ROOT / "lead_finder" / "public"
 EMAIL_PUBLIC_DIR = REPO_ROOT / "public"
 
+NVIDIA_API_BASE = os.getenv("NVIDIA_API_BASE", "https://integrate.api.nvidia.com/v1")
 
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
-NVIDIA_API_BASE = "https://integrate.api.nvidia.com/v1"
-NVIDIA_EMAIL_MODEL = "MiniMax-Text-01"
-NVIDIA_LLAMA_GUARD_MODEL = "nvidia/llama-guard-4-12b"
+# Tasks can use distinct keys if provided, otherwise fallback to the shared NVIDIA_API_KEY
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "").strip()
+NVIDIA_EMAIL_API_KEY = os.getenv("NVIDIA_EMAIL_API_KEY", NVIDIA_API_KEY).strip()
+NVIDIA_GUARD_API_KEY = os.getenv("NVIDIA_GUARD_API_KEY", NVIDIA_API_KEY).strip()
+
 SMTP_HOST = os.getenv("EMAIL_SMTP_HOST", "smtp.zoho.in")
 SMTP_PORT = int(os.getenv("EMAIL_SMTP_PORT", "465"))
 SMTP_SECURITY = os.getenv("EMAIL_SMTP_SECURITY", "ssl").strip().lower()
 SMTP_USERNAME = os.getenv("EMAIL_SMTP_USER", "").strip()
+SMTP_PASSWORD = (os.getenv("EMAIL_HOST_PASSWORD") or os.getenv("EMAIL_SMTP_PASS") or "").strip()
 AGENCY_NAME = os.getenv("AGENCY_NAME", "").strip()
 AGENCY_WEBSITE = os.getenv("AGENCY_WEBSITE", "").strip()
 SENDER_PHONE = os.getenv("SENDER_PHONE", "").strip()
@@ -78,7 +87,6 @@ MAX_PER_HOUR = int(os.getenv("MAX_PER_HOUR", "50"))
 MAX_PER_DAY = int(os.getenv("MAX_PER_DAY", "200"))
 MAX_FAILED_ATTEMPTS_PER_LEAD = int(os.getenv("MAX_FAILED_ATTEMPTS_PER_LEAD", "3"))
 FAILED_RETRY_COOLDOWN_HOURS = int(os.getenv("FAILED_RETRY_COOLDOWN_HOURS", "24"))
-_groq_state: dict[str, float] = {"last_call_ts": 0.0}
 
 # Cross-folder dependencies:
 # - lead_finder/category_bucket.json maps business categories to email buckets/scenarios.
@@ -110,7 +118,14 @@ def _emit_pipeline_event(entity: str, label: str, status: str, detail: str = "")
     }
     if detail:
         payload["detail"] = detail
-    print(f"PIPELINE_EVENT: {json.dumps(payload, ensure_ascii=False)}", flush=True)
+    try:
+        print(f"PIPELINE_EVENT: {json.dumps(payload, ensure_ascii=False)}", flush=True)
+    except UnicodeEncodeError:
+        safe_payload = {
+            k: v.encode("ascii", "replace").decode() if isinstance(v, str) else v
+            for k, v in payload.items()
+        }
+        print(f"PIPELINE_EVENT: {json.dumps(safe_payload)}", flush=True)
     return True
 
 
@@ -232,14 +247,13 @@ def _validate_required_config(*, signature: str, needs_generation: bool, needs_s
                 "SENDER_PHONE": SENDER_PHONE,
                 "SENDER_NAME": SENDER_NAME,
                 "SIGNATURE or EMAIL_SIGNATURE": signature,
-                "GROQ_API_KEY": os.getenv("GROQ_API_KEY", "").strip(),
             }
         )
     if needs_send:
         required_values.update(
             {
                 "EMAIL_SMTP_USER": SMTP_USERNAME,
-                "EMAIL_HOST_PASSWORD": os.getenv("EMAIL_HOST_PASSWORD", "").strip(),
+                "EMAIL_HOST_PASSWORD": SMTP_PASSWORD,
             }
         )
     missing = [key for key, value in required_values.items() if not value]
@@ -669,16 +683,15 @@ def _website_scenario(lead: dict[str, Any]) -> str:
 
 
 def generate_email_nvidia(lead: dict, template: str) -> dict:
-    nvidia_api_key = os.getenv("NVIDIA_API_KEY", "").strip()
-    if not nvidia_api_key:
-        raise RuntimeError("Missing NVIDIA_API_KEY environment variable.")
+    if not NVIDIA_EMAIL_API_KEY:
+        raise RuntimeError("Missing NVIDIA_EMAIL_API_KEY / NVIDIA_API_KEY environment variable.")
 
     try:
         from openai import OpenAI
     except ImportError as exc:
         raise RuntimeError("openai package is required for NVIDIA generation.") from exc
 
-    client = OpenAI(base_url=NVIDIA_API_BASE, api_key=nvidia_api_key)
+    client = OpenAI(base_url=NVIDIA_API_BASE, api_key=NVIDIA_EMAIL_API_KEY)
     system_prompt = (
         "You are an expert cold email copywriter for a web development agency called "
         "NexviaTech targeting small and medium businesses in India. Write concise, "
@@ -698,7 +711,7 @@ def generate_email_nvidia(lead: dict, template: str) -> dict:
     )
 
     response = client.chat.completions.create(
-        model=NVIDIA_EMAIL_MODEL,
+        model=MODEL_CONFIG["email"],
         temperature=0.4,
         messages=[
             {"role": "system", "content": system_prompt},
@@ -825,126 +838,33 @@ def select_template(
     return ""
 
 
-def generate_email_via_groq(
-    lead: dict[str, Any],
-    bucket_key: str,
-    scenario: str,
-    bucket_no: str,
-    template_text: str,
-    signature: str,
-    opt_out_footer: str,
-) -> tuple[str, str]:
-    groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
-    if not groq_api_key:
-        raise RuntimeError("Missing GROQ_API_KEY environment variable.")
-
-    elapsed = time.monotonic() - _groq_state["last_call_ts"]
-    if elapsed < 3:
-        time.sleep(3 - elapsed)
-
-    shop_name = str(lead.get("shop_name") or "your business").strip()
-    category = str(lead.get("category") or "business").strip()
-    city_name = str(lead.get("location") or "your city").strip()
-    location = str(lead.get("location") or city_name).strip()
-    website_url = str(lead.get("website_url") or "").strip()
-    rating = _to_float_or_none(lead.get("rating"))
-    review_count = _to_int_or_none(lead.get("review_count"))
-
-    rating_text = ""
-    if rating is not None and review_count is not None:
-        rating_text = f"Rating: {rating} | Reviews: {review_count}"
-    elif rating is not None:
-        rating_text = f"Rating: {rating}"
-    elif review_count is not None:
-        rating_text = f"Reviews: {review_count}"
-
-    context = {
-        "business_name": shop_name,
-        "category": category,
-        "city": city_name,
-        "location": location,
-        "website_url": website_url,
-        "rating": str(rating) if rating is not None else "",
-        "review_count": str(review_count) if review_count is not None else "",
-        "agency_name": AGENCY_NAME,
-        "agency_website": AGENCY_WEBSITE,
-        "agency_phone": SENDER_PHONE,
-        "sender_name": SENDER_NAME,
-        "signature": signature,
-    }
-    template_instructions = render_template(template_text, context)
-
-    prompt = (
-        "Return exactly this format:\n"
-        "Subject: <subject line>\n"
-        "Body: <email body>\n\n"
-        f"Bucket: {bucket_key}\n"
-        f"Bucket No: {bucket_no}\n"
-        f"Scenario: {scenario}\n"
-        f"Template Instructions:\n{template_instructions}\n\n"
-        f"Business Name: {shop_name}\n"
-        f"Category: {category}\n"
-        f"Website URL From Row: {website_url or 'not provided'}\n"
-        f"City: {city_name}\n"
-        f"Location: {location}\n"
-        f"{rating_text}\n"
-        f"Sender Agency: {AGENCY_NAME}\n"
-        f"Website: {AGENCY_WEBSITE}\n"
-        f"Phone: {SENDER_PHONE}\n"
-        f"Sender Name: {SENDER_NAME}\n\n"
-        "Include this exact signature block in the body:\n"
-        f"{signature}\n"
-        f"{'Also include this opt-out line: ' + opt_out_footer if opt_out_footer else ''}\n"
-        "Use the business name, category, and website URL from the row to personalize the email.\n"
-        "Do not include markdown."
-    )
-
+def detect_pii(text: str) -> None:
+    if not NVIDIA_GUARD_API_KEY:
+        return
     payload = {
-        "model": GROQ_MODEL,
-        "temperature": 0.4,
-        "messages": [
-            {"role": "system", "content": "You write concise, personalized sales emails."},
-            {"role": "user", "content": prompt},
-        ],
+        "model": MODEL_CONFIG["pii"],
+        "messages": [{"role": "user", "content": f"Identify PII in: {text}"}],
+        "temperature": 0.1,
+        "max_tokens": 16,
     }
-
     headers = {
-        "Authorization": f"Bearer {groq_api_key}",
+        "Authorization": f"Bearer {NVIDIA_GUARD_API_KEY}",
         "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0",
     }
-
-    def _call() -> requests.Response:
-        return requests.post(
-            GROQ_API_URL,
+    try:
+        resp = requests.post(
+            f"{NVIDIA_API_BASE}/chat/completions",
             headers=headers,
             json=payload,
-            timeout=45,
+            timeout=(10, 45),
         )
-
-    resp = retry_operation("groq_generation", _call, logger)
-    if resp.status_code != 200:
-        raise RuntimeError(f"Groq HTTP error {resp.status_code}: {resp.text}")
-    raw = resp.json()
-    _groq_state["last_call_ts"] = time.monotonic()
-
-    content = str(raw["choices"][0]["message"]["content"])
-    subject, body = _extract_subject_and_body(content)
-
-    signature_lines = signature.splitlines()
-    core_body = body
-    for line in signature_lines:
-        core_body = core_body.replace(line, "").strip()
-    core_body = re.sub(r"\n{3,}", "\n\n", core_body).strip()
-    core_body = _word_trim(core_body, 170)
-    final_body = f"{core_body}\n\n{signature}".strip()
-    if opt_out_footer:
-        final_body = f"{final_body}\n\n{opt_out_footer}".strip()
-    return subject[:120].strip(), final_body
+        resp.raise_for_status()
+    except Exception as exc:
+        logger.warning("PII detection failed, continuing")
 
 
 def is_email_safe(subject: str, body: str) -> bool:
-    if not NVIDIA_API_KEY:
+    if not NVIDIA_GUARD_API_KEY:
         return True
     prompt = (
         "Review this cold sales email for spam signals, aggressive language, "
@@ -954,13 +874,13 @@ def is_email_safe(subject: str, body: str) -> bool:
         f"Body: {body}"
     )
     payload = {
-        "model": NVIDIA_LLAMA_GUARD_MODEL,
+        "model": MODEL_CONFIG["safety"],
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.3,
         "max_tokens": 16,
     }
     headers = {
-        "Authorization": f"Bearer {NVIDIA_API_KEY}",
+        "Authorization": f"Bearer {NVIDIA_GUARD_API_KEY}",
         "Content-Type": "application/json",
     }
     try:
@@ -971,15 +891,17 @@ def is_email_safe(subject: str, body: str) -> bool:
             timeout=(10, 45),
         )
         if resp.status_code != 200:
-            return True
+            logger.warning("NVIDIA Guardrail returned HTTP %d, blocking send.", resp.status_code)
+            return False
         content = resp.json()["choices"][0]["message"]["content"].strip().upper()
         return content == "SAFE"
-    except Exception:
-        return True
+    except Exception as exc:
+        logger.warning("NVIDIA Guardrail check failed (blocking send): %s", exc)
+        return False
 
 
 def send_email_via_zoho(to_email: str, subject: str, body: str) -> tuple[str, str]:
-    password = os.getenv("EMAIL_HOST_PASSWORD", "").strip()
+    password = SMTP_PASSWORD
     if not password:
         raise RuntimeError("Missing EMAIL_HOST_PASSWORD environment variable.")
 
@@ -1047,9 +969,9 @@ def _build_parser() -> argparse.ArgumentParser:
         help='Abort if no row with review_status="approved" or "good" exists in any output leads.xlsx file.',
     )
     parser.add_argument(
-        "--dry-run-no-groq",
+        "--dry-run-no-gen",
         action="store_true",
-        help="Only print eligible recipients; skip Groq generation and SMTP send.",
+        help="Only print eligible recipients; skip generation and SMTP send.",
     )
     return parser
 
@@ -1058,8 +980,8 @@ def main() -> None:
     _configure_logging()
     args = _build_parser().parse_args()
     _ensure_template_dependencies_exist()
-    if args.dry_run_no_groq and not args.dry_run:
-        raise SystemExit("--dry-run-no-groq requires --dry-run.")
+    if args.dry_run_no_gen and not args.dry_run:
+        raise SystemExit("--dry-run-no-gen requires --dry-run.")
 
     if args.require_approved_review:
         approved_rows = _count_approved_review_rows(OUTPUT_DIR)
@@ -1083,7 +1005,7 @@ def main() -> None:
 
     effective_slug = city_slug or "output_excel"
     signature = _build_signature()
-    needs_generation = not args.dry_run_no_groq
+    needs_generation = not args.dry_run_no_gen
     needs_send = not args.dry_run
     _validate_required_config(
         signature=signature,
@@ -1241,20 +1163,8 @@ def main() -> None:
                             lead_id,
                             exc,
                         )
-                        try:
-                            subject, body = generate_email_via_groq(
-                                lead,
-                                bucket_key,
-                                scenario,
-                                bucket_no,
-                                template_text,
-                                signature,
-                                opt_out_footer,
-                            )
-                        except Exception as groq_exc:  # noqa: BLE001
-                            logger.error("Groq generation failed for lead=%s error=%s", lead_id, groq_exc)
-                            guardrail_reason = f"groq generation failed: {groq_exc}"
-                            break
+                        guardrail_reason = f"generation failed: {exc}"
+                        break
                     valid, guardrail_reason = validate_generated_email(subject, body, signature)
                     if valid:
                         break
@@ -1275,8 +1185,8 @@ def main() -> None:
                     continue
 
             if args.dry_run:
-                if args.dry_run_no_groq:
-                    logger.info("[DRY-RUN-NO-GROQ] lead_id=%s email=%s", lead_id, normalized_email)
+                if args.dry_run_no_gen:
+                    logger.info("[DRY-RUN-NO-GEN] lead_id=%s email=%s", lead_id, normalized_email)
                 else:
                     logger.info(
                         "[DRY-RUN] lead_id=%s email=%s bucket=%s scenario=%s subject=%s",
@@ -1290,6 +1200,8 @@ def main() -> None:
                 update_excel_email_status(excel_contexts, lead, "skipped", "dry run")
                 _emit_pipeline_event("site", lead_label, "SKIPPED", "dry run")
                 continue
+
+            detect_pii(f"{subject}\n{body}")
 
             if not is_email_safe(subject, body):
                 skipped_count += 1

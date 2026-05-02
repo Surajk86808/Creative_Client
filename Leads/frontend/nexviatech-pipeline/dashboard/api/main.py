@@ -12,8 +12,8 @@ from pydantic import BaseModel
 
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-ANALYTICS_PATH = REPO_ROOT / "analytics" / "index.json"
-EMAIL_STATUS_DIR = REPO_ROOT / "public" / "email_status"
+ANALYTICS_PATH = REPO_ROOT / "backend" / "analytics" / "index.json"
+EMAIL_STATUS_DIR = REPO_ROOT / "backend" / "public" / "email_status"
 FINAL_BUILD_STATUSES = {"built", "deployed", "done", "error", "rejected"}
 
 app = FastAPI(title="Creative Client Pipeline Dashboard")
@@ -54,6 +54,18 @@ def _read_json_rows(path: Path) -> list[dict[str, Any]]:
         except json.JSONDecodeError:
             return []
         return [row for row in payload if isinstance(row, dict)] if isinstance(payload, list) else []
+
+    if stripped.startswith("{"):
+        try:
+            payload = json.loads(content)
+        except json.JSONDecodeError:
+            pass
+        else:
+            if isinstance(payload, dict):
+                # If it looks like a map of entries (like analytics/index.json), return values
+                if all(isinstance(v, dict) for v in payload.values()) and payload:
+                    return list(payload.values())
+                return [payload]
 
     rows: list[dict[str, Any]] = []
     for line in content.splitlines():

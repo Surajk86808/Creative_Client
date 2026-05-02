@@ -19,7 +19,7 @@ export default function App() {
             <Route path="pricing" element={<Pricing />} />
             <Route path="contact" element={<Contact />} />
             {/* Dynamic Business Route */}
-            <Route path=":country/:city/:category/:businessSlug" element={<BusinessPreview />} />
+            <Route path=":country/:category/:shopname" element={<BusinessPreview />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

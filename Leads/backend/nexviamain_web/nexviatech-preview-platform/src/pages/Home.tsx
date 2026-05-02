@@ -30,10 +30,10 @@ export default function Home() {
             Every local business deserves a website that works. We build it before they even ask.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-            <Link to="/india/indore/dentist/quality-dental-care" className="px-6 py-3 bg-[#00e5d4] text-[#0a0f1e] font-display font-bold text-sm rounded-lg hover:bg-white transition-colors flex items-center justify-center gap-2">
+            <Link to="/india/dentist/quality-dental-care" className="px-6 py-3 bg-[#00e5d4] text-[#0a0f1e] font-display font-bold text-sm rounded-lg hover:bg-white transition-colors flex items-center justify-center gap-2">
               Dentist Demo <ArrowRight size={16} />
             </Link>
-            <Link to="/usa/new-york/restaurant/joes-pizza" className="px-6 py-3 bg-[#00e5d4] text-[#0a0f1e] font-display font-bold text-sm rounded-lg hover:bg-white transition-colors flex items-center justify-center gap-2">
+            <Link to="/usa/restaurant/joes-pizza" className="px-6 py-3 bg-[#00e5d4] text-[#0a0f1e] font-display font-bold text-sm rounded-lg hover:bg-white transition-colors flex items-center justify-center gap-2">
               Restaurant Demo <ArrowRight size={16} />
             </Link>
             <a href="https://nexviatech.online" target="_blank" rel="noreferrer" className="px-6 py-3 bg-transparent border border-white/20 text-white font-display font-bold text-sm rounded-lg hover:border-[#00e5d4] hover:text-[#00e5d4] transition-colors flex items-center justify-center gap-2">

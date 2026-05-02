@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 import openpyxl
 from dotenv import load_dotenv
@@ -55,6 +56,29 @@ def _find_excel_files(output_dir: Path) -> list[Path]:
     return sorted(output_dir.rglob("leads.xlsx"))
 
 
+def _resolve_capture_target(raw_url: str) -> str | None:
+    value = str(raw_url or "").strip()
+    if not value:
+        return None
+    if value.startswith(("http://", "https://", "file://")):
+        return value
+    return None
+
+
+def _should_capture_review_status(review_status: object) -> bool:
+    return str(review_status or "").strip().lower() in {"good", "approved"}
+
+
+def _file_url_exists(raw_url: str) -> bool:
+    parsed = urlparse(raw_url)
+    if parsed.scheme != "file":
+        return True
+    raw_path = unquote(parsed.path or "")
+    if raw_path.startswith("/") and len(raw_path) > 2 and raw_path[2] == ":":
+        raw_path = raw_path[1:]
+    return Path(raw_path).exists()
+
+
 def _normalize_header(value: object) -> str:
     return str(value or "").strip().lower()
 
@@ -85,6 +109,7 @@ def _take_screenshot(url: str, output_path: Path) -> None:
 
 def _process_workbook(file_path: Path, dry_run: bool) -> tuple[int, int]:
     logger = logging.getLogger("screenshot_taker")
+    logger.info("Reading leads workbook: %s exists=%s", file_path, file_path.exists())
     workbook = openpyxl.load_workbook(file_path)
     worksheet = workbook.active
     header_map = {
@@ -104,13 +129,23 @@ def _process_workbook(file_path: Path, dry_run: bool) -> tuple[int, int]:
     screenshot_dir = file_path.parent / "screenshots"
 
     for row_idx in range(2, worksheet.max_row + 1):
-        review_status = str(worksheet.cell(row_idx, review_status_col).value or "").strip().lower()
-        if review_status not in {"good", "approved"}:
+        review_status = worksheet.cell(row_idx, review_status_col).value
+        if not _should_capture_review_status(review_status):
             skipped += 1
             continue
 
         website_url = str(worksheet.cell(row_idx, website_url_col).value or "").strip()
-        if not website_url.startswith(("http://", "https://")):
+        capture_target = _resolve_capture_target(website_url)
+        if not capture_target:
+            skipped += 1
+            continue
+        if capture_target.startswith("file://") and not _file_url_exists(capture_target):
+            logger.info(
+                "Skipping screenshot for row %d in %s because local file URL does not exist: %s",
+                row_idx,
+                file_path,
+                capture_target,
+            )
             skipped += 1
             continue
 
@@ -121,10 +156,10 @@ def _process_workbook(file_path: Path, dry_run: bool) -> tuple[int, int]:
 
         if not dry_run and (not screenshot_path.exists() or not str(worksheet.cell(row_idx, screenshot_col).value or "").strip()):
             try:
-                _take_screenshot(website_url, screenshot_path)
+                _take_screenshot(capture_target, screenshot_path)
                 captured += 1
             except Exception as exc:  # noqa: BLE001
-                logger.warning("Failed screenshot for %s (%s): %s", name or shop_id, website_url, exc)
+                logger.warning("Failed screenshot for %s (%s): %s", name or shop_id, capture_target, exc)
                 skipped += 1
                 continue
         elif dry_run:
@@ -143,6 +178,7 @@ def main() -> None:
     _configure_logging()
     args = _build_parser().parse_args()
     logger = logging.getLogger("screenshot_taker")
+    logger.info("Scanning leads.xlsx under: %s", args.output_dir.resolve())
 
     files = _find_excel_files(args.output_dir.resolve())
     if not files:

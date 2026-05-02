@@ -664,12 +664,22 @@ def _collect_maps_panel_social_links(page: Page) -> list[str]:
     return _clean_social_links(found)
 
 
-def _save_category_rows(city: str, category: str, rows: list[dict[str, Any]]) -> tuple[Path, int]:
+def _save_category_rows(
+    city: str,
+    category: str,
+    rows: list[dict[str, Any]],
+    *,
+    verify_contacts: bool = False,
+) -> tuple[Path, int]:
     """Persist one category output to public/data/{country}/{city}/{category}/(no_web|weak_web)_leads.json."""
     category_slug = _slugify(category)
     out_dir = ensure_city_storage_layout(CITY_EXPORT_ROOT, city) / category_slug
     out_dir.mkdir(parents=True, exist_ok=True)
-    actionable_count = _write_category_split_rows(out_dir, rows)
+    actionable_count = _write_category_split_rows(
+        out_dir,
+        rows,
+        verify_contacts=verify_contacts,
+    )
     legacy_path = out_dir / f"{category_slug}.json"
     if legacy_path.exists():
         try:
@@ -939,6 +949,8 @@ def _scrape_category(
     db: RegistryDB,
     progress_rows: list[dict[str, Any]],
     progress_path: Path,
+    *,
+    force: bool = False,
 ) -> list[dict[str, Any]]:
     """Scrape one category in one city using batch processing."""
     query = f"{category} in {city}"
@@ -996,7 +1008,7 @@ def _scrape_category(
             href = card.get_attribute("href")
             place_id = _extract_place_id(href)
 
-            if db.is_place_scraped(place_id):
+            if not force and db.is_place_scraped(place_id):
                 skipped_already_scraped += 1
                 continue
 
@@ -1085,6 +1097,8 @@ def scrape_city(
     headless: bool = True,
     db: RegistryDB | None = None,
     progress_path: Path | None = None,
+    *,
+    force: bool = False,
 ) -> list[dict[str, Any]]:
     """Scrape one city across categories and return deduplicated results."""
     if categories is None:
@@ -1116,6 +1130,7 @@ def scrape_city(
                     db=db,
                     progress_rows=progress_rows,
                     progress_path=progress_path,
+                    force=force,
                 )
                 all_results.extend(rows)
                 out_path, actionable_count = _save_category_rows(
@@ -1165,6 +1180,11 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--out", default=None, help="Output JSON path.")
     parser.add_argument("--show-browser", action="store_true", help="Run in visible mode.")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Ignore scraped-place deduplication and scrape fresh listings.",
+    )
     return parser.parse_args()
 
 
@@ -1177,6 +1197,7 @@ def _cli_main() -> None:
         categories=categories,
         max_per_category=(args.max if args.max > 0 else None),
         headless=not args.show_browser,
+        force=args.force,
     )
     if args.out:
         out_path = Path(args.out)

@@ -182,6 +182,18 @@
           "body": "Hi {{business_name}} Team,\n\n{{business_name}} has a {{rating}} rating with {{review_count}} reviews in {{city}} and already has a website. But if new client enquiries are not coming through it consistently, the site is visible without converting — and that gap is fixable.\n\nHere is what is likely missing:\n\n- Local SEO so {{business_name}} ranks when someone searches '{{category}} in {{city}}'\n- A portfolio or gallery of your real work — not placeholder images — that builds instant desire\n- A packages or pricing page that qualifies serious enquiries automatically\n- A strong call to action on every page so visitors know exactly how to book\n\nYour work is already strong. Your website just needs to communicate that clearly to every visitor.\n\nCould we get 10 minutes this week to show you specifically what to improve on {{business_name}}'s site?\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
         }
       }
+    },
+    {
+      "bucket_key": "default",
+      "bucket_no": 0,
+      "bucket_name": "Default Fallback",
+      "categories": [],
+      "scenarios": {
+        "default": {
+          "subject": "We built a free website for {{business_name}}",
+          "body": "Hi {{business_name}} Team,\n\nI came across your {{category}} business in {{city}} and noticed there is room to improve how you present yourself online.\n\nWe put together a free website concept for {{business_name}} so you can see what a cleaner, more professional online presence could look like.\n\nPreview: {{website_url}}\n\nWhy this angle makes sense:\n- {{outreach_angle}}\n- A stronger first impression for people searching {{category}} in {{city}}\n- A simple path for visitors to contact or book with {{business_name}}\n\nIf the direction looks useful, I can walk you through the idea and the next steps on a short call.\n\nBest,\n{{sender_name}}\n{{agency_name}}\n{{agency_website}} | {{agency_phone}}"
+        }
+      }
     }
   ]
 }

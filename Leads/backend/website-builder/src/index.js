@@ -1,11 +1,5 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 const { Command } = require("commander");
-const { runCommand } = require("./commands/run");
-const { statusCommand } = require("./commands/status");
-const { reportCommand } = require("./commands/report");
-const { resetCommand } = require("./commands/reset");
-const { pipelineCommand } = require("./commands/pipeline");
-const { reviewCommand } = require("./commands/review");
 const tracker = require("../../analytics/tracker");
 
 const program = new Command();
@@ -18,7 +12,7 @@ program
   .option("--batch <n>", "Parallel batch size (default 1)", "1")
   .option("--dry-run", "Fill templates but do not deploy")
   .option("--preview", "Serve OUTPUT_DIR locally on port 3000 while running")
-  .action((opts) => runCommand(opts));
+  .action((opts) => require("./commands/run").runCommand(opts));
 
 program
   .command("pipeline")
@@ -34,18 +28,18 @@ program
   .option("--batch <n>", "Parallel batch size (default 1)", "1")
   .option("--dry-run", "Fill templates but do not deploy")
   .option("--preview", "Serve OUTPUT_DIR locally on port 3000 while running")
-  .action((opts) => pipelineCommand(opts).catch((err) => {
+  .action((opts) => require("./commands/pipeline").pipelineCommand(opts).catch((err) => {
     console.error(err && err.message ? err.message : err);
     process.exitCode = Number.isInteger(err && err.exitCode) ? err.exitCode : 1;
   }));
 
-program.command("status").action(() => statusCommand());
-program.command("report").action(() => reportCommand());
+program.command("status").action(() => require("./commands/status").statusCommand());
+program.command("report").action(() => require("./commands/report").reportCommand());
 program
   .command("review")
   .description("Start the local approve/reject dashboard for generated sites")
   .option("--port <n>", "Port for the local review server", "3000")
-  .action((opts) => reviewCommand(opts).catch((err) => {
+  .action((opts) => require("./commands/review").reviewCommand(opts).catch((err) => {
     console.error(err && err.message ? err.message : err);
     process.exitCode = 1;
   }));
@@ -67,7 +61,7 @@ program
     }
     console.log("");
   });
-program.command("reset").requiredOption("--id <shopId>").action((opts) => resetCommand(opts));
+program.command("reset").requiredOption("--id <shopId>").action((opts) => require("./commands/reset").resetCommand(opts));
 
 program.parse(process.argv);
 

@@ -85,8 +85,6 @@ load_dotenv(dotenv_path=ENV_PATH)
 
 
 def _slugify(value: str) -> str:
-    import re
-
     out = str(value or "").strip().lower()
     out = re.sub(r"[^a-z0-9]+", "-", out).strip("-")
     return out or "unknown"
@@ -208,6 +206,15 @@ def _child_env(base_env: dict[str, str] | None = None) -> dict[str, str]:
     if base_env:
         merged.update(base_env)
     merged["PIPELINE_LOG_FORMAT"] = "structured"
+
+    # Ensure REPO_ROOT is in PYTHONPATH so sub-scripts can find top-level modules like 'ai'
+    pp = merged.get("PYTHONPATH", "")
+    sep = os.pathsep
+    new_pp = str(REPO_ROOT)
+    if pp:
+        new_pp = f"{new_pp}{sep}{pp}"
+    merged["PYTHONPATH"] = new_pp
+
     return merged
 
 
@@ -601,26 +608,6 @@ def _print_env_var_check(
     return present
 
 
-def _print_optional_env_var_check(
-    display_name: str,
-    *,
-    present: bool,
-    source_name: str = "",
-    note: str = "",
-) -> bool:
-    status_name = "PASS" if present else "WARN"
-    status = _status_label(status_name)
-    suffix = ""
-    if present and source_name and source_name != display_name:
-        suffix = f" (using {source_name})"
-    elif not present:
-        suffix = " (optional)"
-    if note:
-        suffix = f"{suffix} - {note}" if suffix else f" - {note}"
-    print(f"{display_name:<22} ... {status}{suffix}")
-    return present
-
-
 def _first_present_env(*names: str) -> tuple[bool, str]:
     for name in names:
         value = os.getenv(name, "").strip()
@@ -672,14 +659,6 @@ def _vercel_cli_candidates() -> list[tuple[list[str], str]]:
     if path_vercel:
         add([path_vercel], f"PATH vercel ({path_vercel})")
 
-    portable_npx = REPO_ROOT / "scripts" / _command_name("npx")
-    if portable_npx.exists():
-        add([str(portable_npx), "--yes", "vercel"], "repo scripts/npx vercel")
-
-    path_npx = shutil.which(_command_name("npx")) or shutil.which("npx")
-    if path_npx:
-        add([path_npx, "--yes", "vercel"], f"PATH npx vercel ({path_npx})")
-
     return candidates
 
 
@@ -687,7 +666,7 @@ def _check_vercel_cli() -> tuple[bool, str]:
     candidates = _vercel_cli_candidates()
     if not candidates:
         return False, (
-            "No Vercel launcher found. Install with `cd website-builder && npm install vercel`, "
+            "No Vercel launcher found. Install with `cd website-builder && npm install`, "
             "`scripts\\setup-node.cmd`, or `npm i -g vercel`."
         )
 
@@ -742,12 +721,9 @@ def _run_preflight() -> int:
         _print_note("WARN", ".env not found. Copy .env.example to .env and fill in your values.")
 
     env_checks = [
-        ("GROQ_API_KEY", ("GROQ_API_KEY",)),
-        ("VERCEL_TOKEN", ("VERCEL_TOKEN",)),
         ("EMAIL_SMTP_HOST", ("EMAIL_SMTP_HOST", "SMTP_HOST")),
         ("EMAIL_SMTP_USER", ("EMAIL_SMTP_USER", "SMTP_USER")),
-        ("EMAIL_SMTP_PASS", ("EMAIL_SMTP_PASS", "SMTP_PASS")),
-        ("EMAIL_HOST_PASSWORD", ("EMAIL_HOST_PASSWORD",)),
+        ("EMAIL_HOST_PASSWORD", ("EMAIL_HOST_PASSWORD", "EMAIL_SMTP_PASS", "SMTP_PASS")),
     ]
     print()
     print(_style("Required env vars:", ANSI_BOLD, ANSI_BLUE))
@@ -761,24 +737,6 @@ def _run_preflight() -> int:
             )
         )
 
-    optional_env_checks = [
-        (
-            "NVIDIA_API_KEY",
-            ("NVIDIA_API_KEY",),
-            "used by AI lead analysis and optional email safety/generation paths",
-        ),
-    ]
-    print()
-    print(_style("Optional AI env vars:", ANSI_BOLD, ANSI_BLUE))
-    for display_name, names, note in optional_env_checks:
-        ok, source = _first_present_env(*names)
-        _print_optional_env_var_check(
-            display_name,
-            present=ok,
-            source_name=source,
-            note=note,
-        )
-
     node_path = shutil.which("node")
     results.append(_print_check("node is callable", bool(node_path), node_path or "node not found in PATH"))
     npm_path = shutil.which(_command_name("npm")) or shutil.which("npm")
@@ -787,10 +745,7 @@ def _run_preflight() -> int:
     node_modules_ok, node_modules_detail = _check_website_builder_node_modules()
     results.append(_print_check("website-builder/node_modules exists", node_modules_ok, node_modules_detail))
 
-    vercel_ok, vercel_detail = _check_vercel_cli()
-    results.append(_print_check("Vercel CLI is available for live deploys", vercel_ok, vercel_detail))
-
-    for module_name in ("playwright", "openpyxl", "groq"):
+    for module_name in ("playwright", "openpyxl"):
         ok, detail = _check_python_module(module_name)
         results.append(_print_check(f"python dependency {module_name}", ok, detail))
 
@@ -845,6 +800,11 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--analyze-websites", action="store_true", help="Enable lead_finder website analysis")
     p.add_argument("--show-browser", action="store_true", help="Show the scraper browser UI")
     p.add_argument(
+        "--force",
+        action="store_true",
+        help="Force lead_finder to ignore scraped-place deduplication and collect fresh listings.",
+    )
+    p.add_argument(
         "--city-rate-limit-seconds",
         type=float,
         default=0.0,
@@ -887,10 +847,12 @@ def _build_lead_finder_cmd(args: argparse.Namespace, city: str, categories: list
         cmd.append("--analyze-websites")
     if args.show_browser:
         cmd.append("--show-browser")
+    if args.force:
+        cmd.append("--force")
     return cmd
 
 
-def _build_website_builder_watch_cmd(
+def _build_website_builder_cmd(
     node: str,
     args: argparse.Namespace,
     city: str,
@@ -899,11 +861,7 @@ def _build_website_builder_watch_cmd(
     cmd = [
         node,
         str(REPO_ROOT / "website-builder" / "src" / "index.js"),
-        "watch",
-        "--city",
-        city,
-        "--categories",
-        ",".join(categories),
+        "run",  # Fixed: watch command doesn't exist, use run
         "--batch",
         str(args.batch),
     ]
@@ -918,37 +876,9 @@ def _build_website_builder_watch_cmd(
     return cmd
 
 
-def _new_watcher_done_path() -> Path:
-    fd, raw_path = tempfile.mkstemp(prefix=".pipeline_watcher_", suffix=".done")
-    os.close(fd)
-    path = Path(raw_path)
-    try:
-        path.unlink()
-    except FileNotFoundError:
-        pass
-    return path
-
-
-def _signal_watcher_done(path: Path | None) -> None:
-    if path is None:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("done\n", encoding="utf-8")
-
-
-def _cleanup_watcher_done(path: Path | None) -> None:
-    if path is None:
-        return
-    try:
-        path.unlink()
-    except FileNotFoundError:
-        pass
-
-
 def _build_website_builder_env(
     city: str,
     categories: list[str],
-    watcher_done_path: Path | None = None,
 ) -> dict[str, str]:
     env = dict(os.environ)
     env["USE_JSON_LEADS"] = "true"
@@ -963,8 +893,6 @@ def _build_website_builder_env(
     if country_slug:
         env["ANALYTICS_KEY_PREFIX"] = f"{country_slug}/{_slugify(city)}/"
         env["JSON_LEADS_COUNTRY_SLUG"] = country_slug
-    if watcher_done_path is not None:
-        env["PIPELINE_WATCHER_DONE_FILE"] = str(watcher_done_path)
     return env
 
 
@@ -1029,7 +957,7 @@ def _build_email_cmd(args: argparse.Namespace, city: str | None = None) -> list[
     if not args.skip_review_gate:
         cmd.append("--require-approved-review")
     if args.dry_run:
-        cmd.extend(["--dry-run", "--dry-run-no-groq"])
+        cmd.extend(["--dry-run", "--dry-run-no-gen"])
     return cmd
 
 
@@ -1143,34 +1071,33 @@ def main() -> None:
         if not node_modules_ok:
             raise SystemExit(node_modules_detail)
 
-        needs_live_deploy = not args.dry_run and not args.preview
-        if needs_live_deploy:
-            vercel_ok, vercel_detail = _check_vercel_cli()
-            if not vercel_ok:
-                raise SystemExit(
-                    "Vercel CLI is not ready for live deploys. "
-                    + vercel_detail
-                )
-            _print_note("INFO", f"Vercel CLI ready: {vercel_detail}")
-
     timings: dict[str, float] = {}
     pipeline_stats: dict[str, int] = defaultdict(int)
     city_stats: dict[str, dict[str, int]] = {city: defaultdict(int) for city in cities}
     overall_start = time.perf_counter()
 
     for index, city in enumerate(cities, start=1):
-        watcher_handle: dict[str, object] | None = None
-        watcher_done_path: Path | None = None
-        watcher_step_name = f"Website Builder (watch) [{city}]"
+        if not args.skip_scrape:
+            step_name = f"Lead Finder (scrape) [{city}]"
+            elapsed, step_stats = _run_step(
+                name=step_name,
+                stage="SCRAPE",
+                cmd=_build_lead_finder_cmd(args, city, categories),
+                city=city,
+            )
+            timings[step_name] = elapsed
+            _merge_stats(pipeline_stats, step_stats)
+            _merge_stats(city_stats[city], step_stats)
+
         if not args.skip_build:
-            watcher_done_path = _new_watcher_done_path()
+            step_name = f"Website Builder (build) [{city}]"
             if args.skip_scrape:
                 _print_city_header(city)
                 _print_stage_header("BUILD")
-            else:
-                _print_note("INFO", f"Starting background website-builder watcher for {city}")
-            watcher_handle = _start_background_step(
-                cmd=_build_website_builder_watch_cmd(
+            elapsed, step_stats = _run_step(
+                name=step_name,
+                stage="BUILD",
+                cmd=_build_website_builder_cmd(
                     node=node or "node",
                     args=args,
                     city=city,
@@ -1179,36 +1106,12 @@ def main() -> None:
                 env=_build_website_builder_env(
                     city,
                     categories,
-                    watcher_done_path=watcher_done_path,
                 ),
+                city=city,
             )
-
-        try:
-            if not args.skip_scrape:
-                step_name = f"Lead Finder (scrape) [{city}]"
-                elapsed, step_stats = _run_step(
-                    name=step_name,
-                    stage="SCRAPE",
-                    cmd=_build_lead_finder_cmd(args, city, categories),
-                    city=city,
-                )
-                timings[step_name] = elapsed
-                _merge_stats(pipeline_stats, step_stats)
-                _merge_stats(city_stats[city], step_stats)
-
-            _signal_watcher_done(watcher_done_path)
-
-            if watcher_handle is not None:
-                elapsed, step_stats = _wait_background_step(watcher_step_name, watcher_handle)
-                timings[watcher_step_name] = elapsed
-                _merge_stats(pipeline_stats, step_stats)
-                _merge_stats(city_stats[city], step_stats)
-        except BaseException:
-            if watcher_handle is not None:
-                _stop_background_step(watcher_handle)
-            _cleanup_watcher_done(watcher_done_path)
-            raise
-        _cleanup_watcher_done(watcher_done_path)
+            timings[step_name] = elapsed
+            _merge_stats(pipeline_stats, step_stats)
+            _merge_stats(city_stats[city], step_stats)
 
         should_wait = index < len(cities) and args.city_rate_limit_seconds > 0
         if should_wait:

@@ -104,7 +104,12 @@ export async function getBusinessData(country?: string, city?: string, category?
   if (!slug) return null;
   const data = mockDatabase[slug];
   
-  if (data && data.country === country && data.city === city && data.category === category) {
+  if (
+    data && 
+    (!country || data.country.toLowerCase() === country.toLowerCase()) && 
+    (!city || data.city.toLowerCase() === city.toLowerCase()) && 
+    (!category || data.category.toLowerCase() === category.toLowerCase())
+  ) {
     return data;
   }
   

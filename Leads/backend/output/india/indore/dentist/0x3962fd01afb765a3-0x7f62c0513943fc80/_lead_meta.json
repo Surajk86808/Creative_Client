@@ -19,8 +19,11 @@
   "generated_website": "",
   "preview_path": "india/indore/dentist/0x3962fd01afb765a3-0x7f62c0513943fc80",
   "build_status": "error",
-  "review_status": "rejected",
-  "review_notes": "Vercel CLI not found in PATH (install with: npm i -g vercel)",
+  "review_status": "good",
+  "review_notes": "",
   "generated_at": "2026-04-27T15:10:42.641Z",
-  "review_updated_at": "2026-04-27T15:10:42.649Z"
+  "review_updated_at": "2026-05-02T15:35:12Z",
+  "status": "good",
+  "reason": "",
+  "local_file_url": "file:///P:/Creative-client-/Leads/backend/output/india/indore/dentist/0x3962fd01afb765a3-0x7f62c0513943fc80/index.html"
 }
